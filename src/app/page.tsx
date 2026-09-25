@@ -1,69 +1,88 @@
-import Image from "next/image";
+// src/app/page.tsx
+import { Heart } from 'lucide-react';
+import Link from 'next/link';
+
+const mockProducts = [
+  { id: 1, name: 'Áo thun Unisex', price: '299.000đ', img: '/images/t_shirt_1.png' },
+  { id: 2, name: 'Áo hoodie Unisex', price: '499.000đ', img: '/images/hoodie_1.png' },
+  { id: 3, name: 'Áo khoác chất liệu dù', price: '699.000đ', img: '/images/jacket_1.png' },
+  { id: 4, name: 'Quần nỉ hai da sọc chéo', price: '399.000đ', img: '/images/pants_1.png' },
+  { id: 5, name: 'Nón lưỡi trai', price: '199.000đ', img: '/images/cap_1.png' },
+  { id: 6, name: 'Áo thun form rộng chất cottom', price: '299.000đ', img: '/images/t_shirt_2.png' },
+  { id: 7, name: 'Áo thun 100% cotton form rộng', price: '499.000đ', img: '/images/t_shirt_3.png' },
+];
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
+    <>
+      {/* Hero Section */}
+      <section className="container mx-auto px-4 mt-6">
+        <div className="relative rounded-2xl overflow-hidden min-h-[450px] flex items-center bg-[#eff6ff]">
+
+          {/* Thêm pointer-events-none để lớp nền không che mất thao tác click chuột */}
+          <div className="absolute inset-0 z-0 pointer-events-none">
+            <img
+              src="/images/banner.png"
+              alt="BlueWear Banner"
+              className="w-full h-full object-cover object-right"
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+            <div className="absolute inset-y-0 left-0 w-full md:w-3/5 bg-gradient-to-r from-[#eff6ff] via-[#eff6ff]/90 to-transparent"></div>
+          </div>
+
+          {/* Nội dung chữ và nút bấm nằm ở lớp trên cùng (z-10) */}
+          <div className="relative z-10 p-10 md:p-16 md:w-1/2">
+            <p className="text-sm text-gray-500 uppercase tracking-widest mb-2 font-medium">Unisex Clothing</p>
+            <h1 className="text-5xl font-bold text-[#164F8D] mb-4 leading-tight">
+              Style for<br />everyone
+            </h1>
+            <p className="text-gray-600 mb-8 text-lg">
+              Thời trang unisex - đơn giản, thoải mái, phù hợp với mọi cá tính.
+            </p>
+
+            {/* Nút bấm chuyển sang trang sản phẩm */}
+            <Link
+              href="/products"
+              className="inline-block bg-[#17579B] hover:opacity-90 text-white px-8 py-3 rounded-full font-medium transition-colors mb-6 shadow-md cursor-pointer"
+            >
+              Khám phá ngay →
+            </Link>
+
+            <div className="flex gap-2 items-center">
+              <span className="h-3 w-3 rounded-full bg-[#17579B]"></span>
+              <span className="h-3 w-3 rounded-full bg-[#91B8D9]"></span>
+            </div>
+          </div>
         </div>
-      </main>
-    </div>
+      </section>
+
+      {/* Featured Products Section */}
+      <section className="container mx-auto px-4 py-16">
+        <div className="flex justify-between items-end mb-8 border-b pb-4">
+          <h2 className="text-2xl font-bold text-[#164F8D]">Sản phẩm nổi bật</h2>
+          <Link href="/products" className="text-[#164F8D] hover:underline text-sm font-medium">
+            Xem tất cả →
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
+          {mockProducts.map((product) => (
+            <div key={product.id} className="group cursor-pointer">
+              <div className="relative bg-gray-100 aspect-[3/4] mb-3 overflow-hidden rounded-md">
+                <img
+                  src={product.img}
+                  alt={product.name}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                />
+                <button className="absolute top-3 right-3 p-1.5 bg-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-sm hover:text-red-500">
+                  <Heart size={18} />
+                </button>
+              </div>
+              <h3 className="text-sm text-gray-700 mb-1 line-clamp-1">{product.name}</h3>
+              <p className="font-semibold text-[#164F8D]">{product.price}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+    </>
   );
 }
