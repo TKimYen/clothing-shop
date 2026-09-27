@@ -29,7 +29,6 @@ function formatPrice(value: number) {
   return `${value.toLocaleString("vi-VN")}đ`;
 }
 
-import AuthButtons from "../components/AuthButtons";
 export default function Home() {
   const [featuredProducts, setFeaturedProducts] = useState<ProductItem[]>([]);
   const [isLoadingFeatured, setIsLoadingFeatured] = useState(true);
@@ -105,10 +104,6 @@ export default function Home() {
             >
               Khám phá ngay →
             </Link>
-
-            <div className="mb-4">
-              <AuthButtons />
-            </div>
 
             <div className="flex gap-2 items-center">
               <span className="h-3 w-3 rounded-full bg-[#17579B]"></span>

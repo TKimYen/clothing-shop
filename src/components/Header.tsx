@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Search, ShoppingCart, User, Bell } from 'lucide-react';
 import { FormEvent, useEffect, useState } from 'react';
+import AuthButtons from "../components/AuthButtons";
 
 export default function Header() {
     const pathname = usePathname();
@@ -47,7 +48,8 @@ export default function Header() {
                     <p>Miễn phí vận chuyển cho đơn hàng từ 600.000đ</p>
                     <div className="hidden md:flex gap-4 items-center">
                         <span>Giảm 10% cho khách hàng mới</span>
-                        <Link href="#" className="font-bold text-sm hover:underline">Đăng nhập / Đăng ký</Link>
+                        {/* <Link href="#" className="font-bold text-sm hover:underline">Đăng nhập / Đăng ký</Link> */}
+                        <AuthButtons />
                     </div>
                     <div className="flex items-center gap-2 md:hidden">
                         <Bell size={16} />
