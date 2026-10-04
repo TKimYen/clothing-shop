@@ -59,7 +59,7 @@ export default function CartPage() {
                 <div className="flex-grow">
                   <h3 className="font-semibold text-gray-800">{item.name}</h3>
                   <p className="text-sm text-gray-500 mt-1">Phân loại / Size: <span className="font-medium text-gray-700">{item.size}</span></p>
-                  <p className="font-bold text-[#164F8D] mt-2">{item.price.toLocaleString()}đ</p>
+                  <p className="font-bold text-[#164F8D] mt-2">{item.price.toLocaleString('vi-VN')}đ</p>
                 </div>
 
                 {/* Điều chỉnh số lượng */}
@@ -84,17 +84,17 @@ export default function CartPage() {
             <div className="space-y-3 text-sm text-gray-600 mb-6">
               <div className="flex justify-between">
                 <span>Tạm tính:</span>
-                <span className="font-semibold text-gray-800">{subtotal.toLocaleString()}đ</span>
+                <span className="font-semibold text-gray-800">{subtotal.toLocaleString('vi-VN')}đ</span>
               </div>
               <div className="flex justify-between">
                 <span>Phí vận chuyển:</span>
                 <span className="font-semibold text-gray-800">
-                  {shipping === 0 ? <span className="text-green-600">Miễn phí</span> : `${shipping.toLocaleString()}đ`}
+                  {shipping === 0 ? <span className="text-green-600">Miễn phí</span> : `${shipping.toLocaleString('vi-VN')}đ`}
                 </span>
               </div>
               <div className="flex justify-between text-base font-bold text-[#164F8D] pt-3 border-t">
                 <span>Tổng cộng:</span>
-                <span className="text-xl">{total.toLocaleString()}đ</span>
+                <span className="text-xl">{total.toLocaleString('vi-VN')}đ</span>
               </div>
             </div>
 

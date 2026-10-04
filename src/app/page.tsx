@@ -130,18 +130,40 @@ export default function Home() {
               const displayPrice = product.salePrice ?? product.price;
 
               return (
-                <div key={product.id} className="group cursor-pointer">
+                <div key={product.id} className="group">
                   <div className="relative bg-gray-100 aspect-[3/4] mb-3 overflow-hidden rounded-md">
+<<<<<<< Updated upstream
                     <img
                       src={image?.url ?? '/images/t_shirt_1.png'}
                       alt={image?.altText ?? product.name}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />
+=======
+                    <Link href={`/products/${product.slug}`} className="block h-full">
+                      <img
+                        src={image?.url ?? "/images/t_shirt_1.png"}
+                        alt={image?.altText ?? product.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                    </Link>
+
+>>>>>>> Stashed changes
                     <button className="absolute top-3 right-3 p-1.5 bg-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-sm hover:text-red-500">
                       <Heart size={18} />
                     </button>
                   </div>
+<<<<<<< Updated upstream
                   <h3 className="text-sm text-gray-700 mb-1 line-clamp-1">{product.name}</h3>
+=======
+
+                  <Link
+                    href={`/products/${product.slug}`}
+                    className="mb-1 block text-sm text-gray-700 line-clamp-1 hover:text-[#164F8D]"
+                  >
+                    {product.name}
+                  </Link>
+
+>>>>>>> Stashed changes
                   <div className="flex items-center gap-2">
                     <p className="font-semibold text-[#164F8D]">{formatPrice(displayPrice)}</p>
                     {product.salePrice !== null ? (

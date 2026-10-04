@@ -65,6 +65,7 @@ export default function Footer() {
                                 src="/images/payment.png"
                                 alt="Payment Methods"
                                 fill
+                                sizes="100vw"
                                 className="object-contain object-left"
                             />
                         </div>
