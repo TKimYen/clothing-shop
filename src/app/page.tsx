@@ -215,9 +215,9 @@ export default function Home() {
               const displayPrice = product.salePrice ?? product.price;
 
               return (
-                <div key={product.id} className="group cursor-pointer">
+                <div key={product.id} className="group">
                   <div className="relative bg-gray-100 aspect-[3/4] mb-3 overflow-hidden rounded-md">
-                    <Link href={`/products/${product.slug}`}>
+                    <Link href={`/products/${product.slug}`} className="block h-full">
                       <img
                         src={image?.url ?? "/images/t_shirt_1.png"}
                         alt={image?.altText ?? product.name}
@@ -225,7 +225,7 @@ export default function Home() {
                       />
                     </Link>
 
-                    <button 
+                    <button
                       aria-label="Thêm vào yêu thích"
                       className="absolute top-3 right-3 p-1.5 bg-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-sm hover:text-red-500"
                     >
@@ -238,7 +238,6 @@ export default function Home() {
                       {product.name}
                     </h3>
                   </Link>
-
                   <div className="flex items-center gap-2">
                     <p className="font-semibold text-[#164F8D]">
                       {formatPrice(displayPrice)}

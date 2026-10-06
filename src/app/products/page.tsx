@@ -431,7 +431,7 @@ export default function ProductsPage() {
                     <div key={product.id} className="group relative cursor-pointer">
                       {/* Khung ảnh + Nút hover thêm vào giỏ hàng */}
                       <div className="relative bg-gray-100 aspect-[3/4] mb-3 overflow-hidden rounded-md">
-                        <Link href={`/products/${product.slug}`}>
+                        <Link href={`/products/${product.slug}`} className="block h-full">
                           <img
                             src={image?.url ?? '/images/t_shirt_1.png'}
                             alt={image?.altText ?? product.name}
