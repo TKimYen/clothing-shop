@@ -1,13 +1,22 @@
-﻿'use client';
+﻿// src/app/products/page.tsx
+'use client';
 
-import { Heart, Filter, Search } from 'lucide-react';
+import { Heart, Filter, Search, ShoppingCart } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 
 type CategoryItem = {
   id: string;
   name: string;
   slug: string;
   productCount: number;
+};
+
+type VariantItem = {
+  id: string;
+  sku: string;
+  stockQuantity: number;
 };
 
 type ProductItem = {
@@ -29,6 +38,7 @@ type ProductItem = {
     name: string;
     slug: string;
   };
+  variants: VariantItem[];
 };
 
 type ProductsResponse = {
@@ -68,6 +78,7 @@ function formatPrice(value: number) {
 }
 
 export default function ProductsPage() {
+  const searchParams = useSearchParams();
   const [collectionFilter, setCollectionFilter] = useState('');
   const [keyword, setKeyword] = useState('');
   const [minPriceInput, setMinPriceInput] = useState('');
@@ -79,28 +90,30 @@ export default function ProductsPage() {
   const [selectedCategorySlug, setSelectedCategorySlug] = useState<string>('all');
   const [sortValue, setSortValue] = useState<SortValue>('newest');
 
+  // State quản lý phân trang
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
+  // Lắng nghe sự thay đổi của searchParams trên URL để đồng bộ tự động vào state
   useEffect(() => {
-    if (typeof window === 'undefined') {
-      return;
-    }
+    const collection = searchParams.get('collection')?.trim() || '';
+    const category = searchParams.get('category')?.trim() || 'all';
+    const sort = searchParams.get('sort')?.trim() as SortValue | null;
+    const search = searchParams.get('search') ?? searchParams.get('q') ?? '';
+    const minPrice = searchParams.get('minPrice') ?? '';
+    const maxPrice = searchParams.get('maxPrice') ?? '';
+    const pageParam = Number(searchParams.get('page')) || 1;
 
-    const params = new URLSearchParams(window.location.search);
-    const collection = params.get('collection')?.trim();
-    const category = params.get('category')?.trim();
-    const sort = params.get('sort')?.trim() as SortValue | null;
-    const search = params.get('search') ?? params.get('q') ?? '';
-    const minPrice = params.get('minPrice') ?? '';
-    const maxPrice = params.get('maxPrice') ?? '';
-
-    if (collection) setCollectionFilter(collection);
-    if (category) setSelectedCategorySlug(category);
+    setCollectionFilter(collection);
+    setSelectedCategorySlug(category);
     if (sort && sortOptions.some((option) => option.value === sort)) {
       setSortValue(sort);
     }
     setKeyword(search);
     setMinPriceInput(minPrice);
     setMaxPriceInput(maxPrice);
-  }, []);
+    setCurrentPage(pageParam);
+  }, [searchParams]);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -127,6 +140,9 @@ export default function ProductsPage() {
     if (sortValue !== 'newest') {
       params.set('sort', sortValue);
     }
+    if (currentPage > 1) {
+      params.set('page', String(currentPage));
+    }
 
     const url = params.toString()
       ? `${window.location.pathname}?${params.toString()}`
@@ -136,7 +152,7 @@ export default function ProductsPage() {
     if (!isSameUrl) {
       window.history.replaceState({}, '', url);
     }
-  }, [selectedCategorySlug, collectionFilter, keyword, minPriceInput, maxPriceInput, sortValue]);
+  }, [selectedCategorySlug, collectionFilter, keyword, minPriceInput, maxPriceInput, sortValue, currentPage]);
 
   useEffect(() => {
     let isActive = true;
@@ -187,7 +203,8 @@ export default function ProductsPage() {
 
       const params = new URLSearchParams({
         sort: sortValue,
-        limit: '24',
+        limit: '12',
+        page: String(currentPage),
       });
 
       const trimmedKeyword = keyword.trim();
@@ -218,6 +235,9 @@ export default function ProductsPage() {
 
       if (!isActive) return;
       setProducts(result.data);
+      if (result.meta) {
+        setTotalPages(result.meta.totalPages);
+      }
     }
 
     loadProducts()
@@ -234,7 +254,7 @@ export default function ProductsPage() {
     return () => {
       isActive = false;
     };
-  }, [selectedCategorySlug, sortValue, collectionFilter, keyword, minPriceInput, maxPriceInput]);
+  }, [selectedCategorySlug, sortValue, collectionFilter, keyword, minPriceInput, maxPriceInput, currentPage]);
 
   const sidebarItems = useMemo(
     () => [
@@ -262,6 +282,7 @@ export default function ProductsPage() {
     setMinPriceInput('');
     setMaxPriceInput('');
     setSortValue('newest');
+    setCurrentPage(1);
   };
 
   return (
@@ -279,7 +300,10 @@ export default function ProductsPage() {
           <span className="text-sm text-gray-600">Sắp xếp:</span>
           <select
             value={sortValue}
-            onChange={(event) => setSortValue(event.target.value as SortValue)}
+            onChange={(event) => {
+              setSortValue(event.target.value as SortValue);
+              setCurrentPage(1);
+            }}
             className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-[#17579B] text-gray-700"
           >
             {sortOptions.map((option) => (
@@ -298,7 +322,10 @@ export default function ProductsPage() {
             <input
               type="text"
               value={keyword}
-              onChange={(event) => setKeyword(event.target.value)}
+              onChange={(event) => {
+                setKeyword(event.target.value);
+                setCurrentPage(1);
+              }}
               placeholder="Tìm kiếm sản phẩm..."
               className="w-full rounded-full border border-gray-200 bg-white py-2.5 pl-10 pr-3 text-sm text-gray-700 outline-none focus:border-[#17579B]"
             />
@@ -309,7 +336,10 @@ export default function ProductsPage() {
               type="number"
               min="0"
               value={minPriceInput}
-              onChange={(event) => setMinPriceInput(event.target.value)}
+              onChange={(event) => {
+                setMinPriceInput(event.target.value);
+                setCurrentPage(1);
+              }}
               placeholder="Giá tối thiểu"
               className="w-32 rounded-full border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 outline-none focus:border-[#17579B]"
             />
@@ -318,7 +348,10 @@ export default function ProductsPage() {
               type="number"
               min="0"
               value={maxPriceInput}
-              onChange={(event) => setMaxPriceInput(event.target.value)}
+              onChange={(event) => {
+                setMaxPriceInput(event.target.value);
+                setCurrentPage(1);
+              }}
               placeholder="Giá tối đa"
               className="w-32 rounded-full border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 outline-none focus:border-[#17579B]"
             />
@@ -349,7 +382,10 @@ export default function ProductsPage() {
               <li key={item.key}>
                 <button
                   type="button"
-                  onClick={() => setSelectedCategorySlug(item.key)}
+                  onClick={() => {
+                    setSelectedCategorySlug(item.key);
+                    setCurrentPage(1);
+                  }}
                   className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
                     selectedCategorySlug === item.key
                       ? 'bg-[#17579B] text-white font-medium'
@@ -365,7 +401,7 @@ export default function ProductsPage() {
 
         <div className="lg:col-span-3">
           {errorMessage ? (
-            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 mb-6">
               {errorMessage}
             </div>
           ) : null}
@@ -385,37 +421,144 @@ export default function ProductsPage() {
               Không có sản phẩm phù hợp.
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-              {products.map((product) => {
-                const image = product.images[0];
-                const displayPrice = product.salePrice ?? product.price;
+            <>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+                {products.map((product) => {
+                  const image = product.images[0];
+                  const displayPrice = product.salePrice ?? product.price;
 
-                return (
-                  <div key={product.id} className="group cursor-pointer">
-                    <div className="relative bg-gray-100 aspect-[3/4] mb-3 overflow-hidden rounded-md">
-                      <img
-                        src={image?.url ?? '/images/t_shirt_1.png'}
-                        alt={image?.altText ?? product.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                      <button type="button" className="absolute top-3 right-3 p-1.5 bg-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-sm hover:text-red-500">
-                        <Heart size={18} />
-                      </button>
-                      <span className="absolute bottom-3 left-3 bg-white/90 text-xs px-2 py-1 rounded text-gray-700 font-medium">
-                        {product.category.name}
-                      </span>
+                  return (
+                    <div key={product.id} className="group relative cursor-pointer">
+                      {/* Khung ảnh + Nút hover thêm vào giỏ hàng */}
+                      <div className="relative bg-gray-100 aspect-[3/4] mb-3 overflow-hidden rounded-md">
+                        <Link href={`/products/${product.slug}`}>
+                          <img
+                            src={image?.url ?? '/images/t_shirt_1.png'}
+                            alt={image?.altText ?? product.name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                        </Link>
+
+                        {/* Nút yêu thích */}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                          }}
+                          className="absolute top-3 right-3 p-1.5 bg-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-sm hover:text-red-500"
+                        >
+                          <Heart size={18} />
+                        </button>
+
+                        <span className="absolute bottom-3 left-3 bg-white/90 text-xs px-2 py-1 rounded text-gray-700 font-medium">
+                          {product.category.name}
+                        </span>
+
+                        {/* NÚT THÊM NHANH VÀO GIỎ HÀNG NỐI VỚI DB */}
+                        <div className="absolute inset-x-3 bottom-3 opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300">
+                          <button
+                            type="button"
+                            onClick={async (e) => {
+                              e.preventDefault();
+                              const defaultVariant = product.variants?.[0];
+                              if (!defaultVariant) {
+                                alert('Sản phẩm tạm thời hết phân loại!');
+                                return;
+                              }
+
+                              try {
+                                const response = await fetch('/api/cart', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({
+                                    variantId: defaultVariant.id,
+                                    quantity: 1,
+                                  }),
+                                });
+                                const result = await response.json();
+                                if (result.success) {
+                                  alert(`Đã thêm sản phẩm "${product.name}" vào giỏ hàng!`);
+                                  window.location.reload();
+                                } else {
+                                  alert(
+                                    response.status === 401
+                                      ? 'Vui lòng đăng nhập để thêm vào giỏ hàng'
+                                      : result.error?.message || 'Không thể thêm vào giỏ hàng',
+                                  );
+                                }
+                              } catch (err) {
+                                console.error(err);
+                                alert('Lỗi kết nối giỏ hàng');
+                              }
+                            }}
+                            className="w-full bg-[#164F8D] hover:bg-[#123d6d] text-white text-sm font-medium py-2.5 px-4 rounded-lg shadow-md flex items-center justify-center gap-2 transition-colors"
+                          >
+                            <ShoppingCart size={16} />
+                            <span>Thêm vào giỏ</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Tên sản phẩm dẫn tới trang chi tiết */}
+                      <Link href={`/products/${product.slug}`} className="block">
+                        <h3 className="text-sm text-gray-700 mb-1 line-clamp-1 group-hover:text-[#164F8D] transition-colors">
+                          {product.name}
+                        </h3>
+                      </Link>
+                      <div className="flex items-center gap-2">
+                        <p className="font-semibold text-[#164F8D]">{formatPrice(displayPrice)}</p>
+                        {product.salePrice !== null ? (
+                          <p className="text-xs text-gray-400 line-through">{formatPrice(product.price)}</p>
+                        ) : null}
+                      </div>
                     </div>
-                    <h3 className="text-sm text-gray-700 mb-1 line-clamp-1">{product.name}</h3>
-                    <div className="flex items-center gap-2">
-                      <p className="font-semibold text-[#164F8D]">{formatPrice(displayPrice)}</p>
-                      {product.salePrice !== null ? (
-                        <p className="text-xs text-gray-400 line-through">{formatPrice(product.price)}</p>
-                      ) : null}
-                    </div>
+                  );
+                })}
+              </div>
+
+              {/* PAGINATION UI */}
+              {totalPages > 1 && (
+                <div className="flex justify-center items-center gap-2 mt-10">
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                    className="px-4 py-2 text-sm border rounded-lg border-gray-300 text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    Trang trước
+                  </button>
+
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: totalPages }).map((_, index) => {
+                      const pageNum = index + 1;
+                      return (
+                        <button
+                          key={pageNum}
+                          type="button"
+                          onClick={() => setCurrentPage(pageNum)}
+                          className={`w-9 h-9 text-sm rounded-lg font-medium transition-colors ${
+                            currentPage === pageNum
+                              ? 'bg-[#164F8D] text-white'
+                              : 'border border-gray-300 text-gray-700 hover:bg-gray-100'
+                          }`}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    })}
                   </div>
-                );
-              })}
-            </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage === totalPages}
+                    className="px-4 py-2 text-sm border rounded-lg border-gray-300 text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    Trang sau
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

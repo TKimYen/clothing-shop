@@ -4,42 +4,54 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Search, ShoppingCart, User, Bell } from 'lucide-react';
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useState, useEffect } from 'react';
 import AuthButtons from "../components/AuthButtons";
+
+type CartItemCount = {
+  quantity: number;
+};
 
 export default function Header() {
     const pathname = usePathname();
     const router = useRouter();
     const [searchKeyword, setSearchKeyword] = useState('');
+    const [cartCount, setCartCount] = useState(0);
 
+    // Lấy số lượng sản phẩm trong giỏ hàng từ API để hiển thị huy hiệu động
     useEffect(() => {
-        if (typeof window === 'undefined') {
-            return;
+        async function fetchCartCount() {
+            try {
+                const res = await fetch('/api/cart', { cache: 'no-store' });
+                const result = await res.json();
+                if (result.success && Array.isArray(result.data)) {
+                    // Tính tổng số lượng (quantity) của tất cả các item trong giỏ
+                    const totalQuantity = result.data.reduce((sum: number, item: CartItemCount) => sum + item.quantity, 0);
+                    setCartCount(totalQuantity);
+                }
+            } catch (error) {
+                console.error("Không thể tải số lượng giỏ hàng:", error);
+            }
         }
 
-        if (pathname === '/products') {
-            const params = new URLSearchParams(window.location.search);
-            const keyword = params.get('search') ?? params.get('q') ?? '';
-            setSearchKeyword(keyword);
-            return;
-        }
-
-        setSearchKeyword('');
-    }, [pathname]);
+        fetchCartCount();
+        
+        // Lắng nghe sự kiện hoặc định kỳ có thể làm mới, tạm thời chạy khi load trang
+    }, [pathname]); // Cập nhật lại mỗi khi đổi trang
 
     const handleSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
-
         const keyword = searchKeyword.trim();
-        const params = new URLSearchParams();
 
         if (keyword) {
-            params.set('search', keyword);
+            router.push(`/products?search=${encodeURIComponent(keyword)}`);
+        } else {
+            router.push('/products');
         }
-
-        const targetUrl = params.size > 0 ? `/products?${params.toString()}` : '/products';
-        router.push(targetUrl);
+        
+        setSearchKeyword('');
     };
+
+    const isProductsPage = pathname === '/products';
 
     return (
         <header className="w-full">
@@ -48,13 +60,7 @@ export default function Header() {
                     <p>Miễn phí vận chuyển cho đơn hàng từ 600.000đ</p>
                     <div className="hidden md:flex gap-4 items-center">
                         <span>Giảm 10% cho khách hàng mới</span>
-                        {/* <Link href="#" className="font-bold text-sm hover:underline">Đăng nhập / Đăng ký</Link> */}
                         <AuthButtons />
-                    </div>
-                    <div className="flex items-center gap-2 md:hidden">
-                        <Bell size={16} />
-                        <User size={16} />
-                        <span>HPNgocTuong</span>
                     </div>
                 </div>
             </div>
@@ -78,7 +84,7 @@ export default function Header() {
 
                         <Link
                             href="/products"
-                            className={`pb-1 transition-colors ${pathname === '/products'
+                            className={`pb-1 transition-colors ${isProductsPage
                                 ? 'text-[#164F8D] font-semibold border-b-2 border-[#164F8D]'
                                 : 'hover:text-[#164F8D]'
                                 }`}
@@ -106,33 +112,43 @@ export default function Header() {
                             Giới thiệu
                         </Link>
 
-                        <Link href="#" className="hover:text-[#164F8D]">Liên hệ</Link>
+                        <Link
+                            href="/contact"
+                            className="hover:text-[#164F8D]"
+                        >
+                            Liên hệ
+                        </Link>
                     </nav>
 
                     <div className="flex items-center gap-4 ml-auto">
-                        <form onSubmit={handleSearchSubmit} className="relative hidden md:block">
-                            <input
-                                type="text"
-                                value={searchKeyword}
-                                onChange={(event) => setSearchKeyword(event.target.value)}
-                                placeholder="Tìm kiếm sản phẩm..."
-                                aria-label="Tìm kiếm sản phẩm"
-                                className="w-64 bg-white text-gray-700 placeholder:text-gray-400 border border-[#17579B] rounded-full px-4 py-2 pr-10 text-sm shadow-sm outline-none focus:border-[#164F8D] focus:ring-2 focus:ring-[#dbeafe]"
-                            />
-                            <button
-                                type="submit"
-                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-[#17579B]"
-                                aria-label="Tìm kiếm"
-                            >
-                                <Search size={18} />
-                            </button>
-                        </form>
+                        {!isProductsPage && (
+                            <form onSubmit={handleSearchSubmit} className="relative hidden md:block">
+                                <input
+                                    type="text"
+                                    value={searchKeyword}
+                                    onChange={(event) => setSearchKeyword(event.target.value)}
+                                    placeholder="Tìm kiếm sản phẩm..."
+                                    aria-label="Tìm kiếm sản phẩm"
+                                    className="w-64 bg-white text-gray-700 placeholder:text-gray-400 border border-[#17579B] rounded-full px-4 py-2 pr-10 text-sm shadow-sm outline-none focus:border-[#164F8D] focus:ring-2 focus:ring-[#dbeafe]"
+                                />
+                                <button
+                                    type="submit"
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-[#17579B] cursor-pointer"
+                                    aria-label="Tìm kiếm"
+                                >
+                                    <Search size={18} />
+                                </button>
+                            </form>
+                        )}
 
                         <Link href="/cart" className="p-2 hover:bg-gray-100 rounded-full relative shrink-0">
                             <ShoppingCart size={24} className="text-[#164F8D]" />
-                            <span className="absolute top-1 right-1 bg-red-500 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
-                                2
-                            </span>
+                            {/* Chỉ hiển thị số lượng đỏ khi giỏ hàng có sản phẩm (> 0) */}
+                            {cartCount > 0 && (
+                                <span className="absolute top-1 right-1 bg-red-500 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
+                                    {cartCount}
+                                </span>
+                            )}
                         </Link>
                     </div>
                 </div>
