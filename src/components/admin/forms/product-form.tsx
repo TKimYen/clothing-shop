@@ -1,6 +1,7 @@
 "use client";
 
-import { Plus, Trash2 } from "lucide-react";
+import { ImagePlus, Loader2, Plus, Trash2, Upload } from "lucide-react";
+import { toast } from "sonner";
 import * as React from "react";
 import { useFieldArray, type FieldErrors } from "react-hook-form";
 import { Button, FormRow, Input, Select, Switch, Tabs, TabsContent, TabsList, TabsTrigger, Textarea, Card, CardBody } from "@/src/components/ui";
@@ -12,6 +13,7 @@ import {
   type ProductFormValues,
 } from "@/src/lib/schemas";
 import { lowestStock, slugify, totalStock } from "@/src/lib/utils";
+import { productService } from "@/src/lib/services";
 import type { Product, ProductInput, ProductOptions } from "@/src/types";
 import { applyServiceErrors, messageOf, useSlugSync, useZodForm } from "./use-zod-form";
 
@@ -45,6 +47,47 @@ export function ProductForm({
 
   const variants = useFieldArray({ control: form.control, name: "variants" });
   const images = useFieldArray({ control: form.control, name: "images" });
+  const fileInput = React.useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = React.useState(0);
+  const [replacingIndex, setReplacingIndex] = React.useState<number | null>(null);
+
+  /** Uploads files picked from the computer; adds a row each, or replaces one row's image. */
+  async function handleFiles(fileList: FileList | null) {
+    const files = Array.from(fileList ?? []);
+    const target = replacingIndex;
+    setReplacingIndex(null);
+    if (fileInput.current) fileInput.current.value = "";
+    if (files.length === 0) return;
+
+    setUploading((count) => count + files.length);
+    for (const file of files) {
+      try {
+        const { url } = await productService.uploadImage(file);
+        if (target !== null) {
+          form.setValue(`images.${target}.url`, url, { shouldDirty: true, shouldValidate: true });
+        } else {
+          images.append({
+            colorId: "",
+            url,
+            altText: "",
+            sortOrder: String((form.getValues("images")?.length ?? 0) + 1),
+          });
+        }
+      } catch (error) {
+        toast.error(`${file.name}: ${error instanceof Error ? error.message : "Upload failed"}`);
+      } finally {
+        setUploading((count) => count - 1);
+      }
+    }
+  }
+
+  function pickFiles(index: number | null) {
+    setReplacingIndex(index);
+    if (fileInput.current) {
+      fileInput.current.multiple = index === null;
+      fileInput.current.click();
+    }
+  }
 
   const [tab, setTab] = React.useState("info");
   const errors = form.formState.errors;
@@ -476,7 +519,7 @@ export function ProductForm({
             <CardBody className="p-0">
               {images.fields.length === 0 ? (
                 <p className="px-4 py-10 text-center text-xs text-muted">
-                  No images yet. Paste an image URL to add one.
+                  No images yet. Upload images from your computer to add one.
                 </p>
               ) : (
                 <ul className="divide-y divide-canvas-line">
@@ -498,25 +541,23 @@ export function ProductForm({
                         </div>
 
                         <div className="sm:col-span-5">
-                          <label htmlFor={`${field.id}-url`} className="field-label">
-                            Image URL
-                          </label>
-                          <Input
-                            id={`${field.id}-url`}
-                            aria-label={`Image URL ${index + 1}`}
-                            aria-invalid={Boolean(messageOf(rowError?.url))}
-                          aria-describedby={messageOf(rowError?.url) ? `${field.id}-url-error` : undefined}
-                            value={url}
-                            onChange={(event) =>
-                              form.setValue(`images.${index}.url`, event.target.value, {
-                                shouldDirty: true,
-                                shouldValidate: true,
-                              })
-                            }
-                            placeholder="https://…"
-                            className="h-8 text-xs"
-                            autoComplete="off"
-                          />
+                          <span className="field-label">Image file</span>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              size="sm"
+                              aria-label={`Change image ${index + 1}`}
+                              disabled={uploading > 0}
+                              onClick={() => pickFiles(index)}
+                            >
+                              <Upload className="size-3.5" />
+                              {url ? "Change" : "Choose file"}
+                            </Button>
+                            <span className="min-w-0 truncate text-[11px] text-muted" title={url}>
+                              {url ? url.split("/").pop() : "No file chosen"}
+                            </span>
+                          </div>
                           {messageOf(rowError?.url) ? (
                             <p role="alert" className="mt-1 text-[11px] font-medium text-danger">
                               {messageOf(rowError?.url)}
@@ -621,23 +662,29 @@ export function ProductForm({
             </CardBody>
           </Card>
 
+          <input
+            ref={fileInput}
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif,image/avif"
+            className="hidden"
+            onChange={(event) => void handleFiles(event.target.files)}
+          />
           <Button
             type="button"
             variant="secondary"
             size="sm"
             className="mt-3"
-            onClick={() =>
-              images.append({
-                colorId: "",
-                url: "",
-                altText: "",
-                sortOrder: String(images.fields.length + 1),
-              })
-            }
+            disabled={uploading > 0}
+            onClick={() => pickFiles(null)}
           >
-            <Plus className="size-3.5" />
-            Add image
+            {uploading > 0 ? (
+              <Loader2 className="size-3.5 animate-spin" />
+            ) : (
+              <ImagePlus className="size-3.5" />
+            )}
+            {uploading > 0 ? `Uploading ${uploading}…` : "Upload images"}
           </Button>
+          <span className="ml-3 text-[11px] text-muted">JPG, PNG, WEBP, GIF or AVIF · up to 5 MB each</span>
         </TabsContent>
       </Tabs>
 
