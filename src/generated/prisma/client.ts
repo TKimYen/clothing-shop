@@ -87,6 +87,16 @@ export type ProductVariant = Prisma.ProductVariantModel
  */
 export type ProductImage = Prisma.ProductImageModel
 /**
+ * Model StockImport
+ * 
+ */
+export type StockImport = Prisma.StockImportModel
+/**
+ * Model StockImportItem
+ * 
+ */
+export type StockImportItem = Prisma.StockImportItemModel
+/**
  * Model Cart
  * 
  */

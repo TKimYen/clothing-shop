@@ -1,12 +1,14 @@
 import { auth } from "@clerk/nextjs/server";
+import ProfileForm from "@/src/components/ProfileForm";
 
 export default async function AccountPage() {
-  const { userId } = await auth.protect();
+  await auth.protect();
 
   return (
     <main>
-      <h1>My Account</h1>
-      <p>User ID: {userId}</p>
+      <h1>Thông tin tài khoản</h1>
+
+      <ProfileForm />
     </main>
   );
 }

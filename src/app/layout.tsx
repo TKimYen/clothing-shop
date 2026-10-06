@@ -4,6 +4,7 @@ import "./globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
+import SiteChrome from "../components/SiteChrome";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -24,11 +25,9 @@ export default function RootLayout({
         className={`${inter.className} min-h-screen flex flex-col text-[#164F8D] bg-white`}
       >
         <ClerkProvider>
-          <Header />
-
-          <main className="flex-grow">{children}</main>
-
-          <Footer />
+          <SiteChrome header={<Header />} footer={<Footer />}>
+            {children}
+          </SiteChrome>
         </ClerkProvider>
       </body>
     </html>

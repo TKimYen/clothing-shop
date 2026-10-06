@@ -406,6 +406,8 @@ export const ModelName = {
   Color: 'Color',
   ProductVariant: 'ProductVariant',
   ProductImage: 'ProductImage',
+  StockImport: 'StockImport',
+  StockImportItem: 'StockImportItem',
   Cart: 'Cart',
   CartItem: 'CartItem',
   Coupon: 'Coupon',
@@ -427,7 +429,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "address" | "category" | "collection" | "product" | "size" | "color" | "productVariant" | "productImage" | "cart" | "cartItem" | "coupon" | "order" | "orderItem" | "payment"
+    modelProps: "user" | "address" | "category" | "collection" | "product" | "size" | "color" | "productVariant" | "productImage" | "stockImport" | "stockImportItem" | "cart" | "cartItem" | "coupon" | "order" | "orderItem" | "payment"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1097,6 +1099,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    StockImport: {
+      payload: Prisma.$StockImportPayload<ExtArgs>
+      fields: Prisma.StockImportFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.StockImportFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StockImportPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.StockImportFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StockImportPayload>
+        }
+        findFirst: {
+          args: Prisma.StockImportFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StockImportPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.StockImportFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StockImportPayload>
+        }
+        findMany: {
+          args: Prisma.StockImportFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StockImportPayload>[]
+        }
+        create: {
+          args: Prisma.StockImportCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StockImportPayload>
+        }
+        createMany: {
+          args: Prisma.StockImportCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.StockImportCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StockImportPayload>[]
+        }
+        delete: {
+          args: Prisma.StockImportDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StockImportPayload>
+        }
+        update: {
+          args: Prisma.StockImportUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StockImportPayload>
+        }
+        deleteMany: {
+          args: Prisma.StockImportDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.StockImportUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.StockImportUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StockImportPayload>[]
+        }
+        upsert: {
+          args: Prisma.StockImportUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StockImportPayload>
+        }
+        aggregate: {
+          args: Prisma.StockImportAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateStockImport>
+        }
+        groupBy: {
+          args: Prisma.StockImportGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.StockImportGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.StockImportCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.StockImportCountAggregateOutputType> | number
+        }
+      }
+    }
+    StockImportItem: {
+      payload: Prisma.$StockImportItemPayload<ExtArgs>
+      fields: Prisma.StockImportItemFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.StockImportItemFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StockImportItemPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.StockImportItemFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StockImportItemPayload>
+        }
+        findFirst: {
+          args: Prisma.StockImportItemFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StockImportItemPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.StockImportItemFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StockImportItemPayload>
+        }
+        findMany: {
+          args: Prisma.StockImportItemFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StockImportItemPayload>[]
+        }
+        create: {
+          args: Prisma.StockImportItemCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StockImportItemPayload>
+        }
+        createMany: {
+          args: Prisma.StockImportItemCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.StockImportItemCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StockImportItemPayload>[]
+        }
+        delete: {
+          args: Prisma.StockImportItemDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StockImportItemPayload>
+        }
+        update: {
+          args: Prisma.StockImportItemUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StockImportItemPayload>
+        }
+        deleteMany: {
+          args: Prisma.StockImportItemDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.StockImportItemUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.StockImportItemUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StockImportItemPayload>[]
+        }
+        upsert: {
+          args: Prisma.StockImportItemUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StockImportItemPayload>
+        }
+        aggregate: {
+          args: Prisma.StockImportItemAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateStockImportItem>
+        }
+        groupBy: {
+          args: Prisma.StockImportItemGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.StockImportItemGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.StockImportItemCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.StockImportItemCountAggregateOutputType> | number
+        }
+      }
+    }
     Cart: {
       payload: Prisma.$CartPayload<ExtArgs>
       fields: Prisma.CartFieldRefs
@@ -1582,6 +1732,7 @@ export type TransactionIsolationLevel = (typeof TransactionIsolationLevel)[keyof
 
 export const UserScalarFieldEnum = {
   id: 'id',
+  clerkId: 'clerkId',
   email: 'email',
   passwordHash: 'passwordHash',
   fullName: 'fullName',
@@ -1689,6 +1840,28 @@ export const ProductImageScalarFieldEnum = {
 } as const
 
 export type ProductImageScalarFieldEnum = (typeof ProductImageScalarFieldEnum)[keyof typeof ProductImageScalarFieldEnum]
+
+
+export const StockImportScalarFieldEnum = {
+  id: 'id',
+  code: 'code',
+  note: 'note',
+  createdById: 'createdById',
+  createdAt: 'createdAt'
+} as const
+
+export type StockImportScalarFieldEnum = (typeof StockImportScalarFieldEnum)[keyof typeof StockImportScalarFieldEnum]
+
+
+export const StockImportItemScalarFieldEnum = {
+  id: 'id',
+  stockImportId: 'stockImportId',
+  variantId: 'variantId',
+  quantity: 'quantity',
+  unitCost: 'unitCost'
+} as const
+
+export type StockImportItemScalarFieldEnum = (typeof StockImportItemScalarFieldEnum)[keyof typeof StockImportItemScalarFieldEnum]
 
 
 export const CartScalarFieldEnum = {
@@ -2158,6 +2331,8 @@ export type GlobalOmitConfig = {
   color?: Prisma.ColorOmit
   productVariant?: Prisma.ProductVariantOmit
   productImage?: Prisma.ProductImageOmit
+  stockImport?: Prisma.StockImportOmit
+  stockImportItem?: Prisma.StockImportItemOmit
   cart?: Prisma.CartOmit
   cartItem?: Prisma.CartItemOmit
   coupon?: Prisma.CouponOmit

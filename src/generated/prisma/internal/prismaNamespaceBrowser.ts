@@ -60,6 +60,8 @@ export const ModelName = {
   Color: 'Color',
   ProductVariant: 'ProductVariant',
   ProductImage: 'ProductImage',
+  StockImport: 'StockImport',
+  StockImportItem: 'StockImportItem',
   Cart: 'Cart',
   CartItem: 'CartItem',
   Coupon: 'Coupon',
@@ -86,6 +88,7 @@ export type TransactionIsolationLevel = (typeof TransactionIsolationLevel)[keyof
 
 export const UserScalarFieldEnum = {
   id: 'id',
+  clerkId: 'clerkId',
   email: 'email',
   passwordHash: 'passwordHash',
   fullName: 'fullName',
@@ -193,6 +196,28 @@ export const ProductImageScalarFieldEnum = {
 } as const
 
 export type ProductImageScalarFieldEnum = (typeof ProductImageScalarFieldEnum)[keyof typeof ProductImageScalarFieldEnum]
+
+
+export const StockImportScalarFieldEnum = {
+  id: 'id',
+  code: 'code',
+  note: 'note',
+  createdById: 'createdById',
+  createdAt: 'createdAt'
+} as const
+
+export type StockImportScalarFieldEnum = (typeof StockImportScalarFieldEnum)[keyof typeof StockImportScalarFieldEnum]
+
+
+export const StockImportItemScalarFieldEnum = {
+  id: 'id',
+  stockImportId: 'stockImportId',
+  variantId: 'variantId',
+  quantity: 'quantity',
+  unitCost: 'unitCost'
+} as const
+
+export type StockImportItemScalarFieldEnum = (typeof StockImportItemScalarFieldEnum)[keyof typeof StockImportItemScalarFieldEnum]
 
 
 export const CartScalarFieldEnum = {
