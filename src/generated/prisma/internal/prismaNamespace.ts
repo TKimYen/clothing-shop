@@ -413,7 +413,8 @@ export const ModelName = {
   Coupon: 'Coupon',
   Order: 'Order',
   OrderItem: 'OrderItem',
-  Payment: 'Payment'
+  Payment: 'Payment',
+  UserPaymentMethod: 'UserPaymentMethod'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -429,7 +430,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "address" | "category" | "collection" | "product" | "size" | "color" | "productVariant" | "productImage" | "stockImport" | "stockImportItem" | "cart" | "cartItem" | "coupon" | "order" | "orderItem" | "payment"
+    modelProps: "user" | "address" | "category" | "collection" | "product" | "size" | "color" | "productVariant" | "productImage" | "stockImport" | "stockImportItem" | "cart" | "cartItem" | "coupon" | "order" | "orderItem" | "payment" | "userPaymentMethod"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1691,6 +1692,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    UserPaymentMethod: {
+      payload: Prisma.$UserPaymentMethodPayload<ExtArgs>
+      fields: Prisma.UserPaymentMethodFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.UserPaymentMethodFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserPaymentMethodPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.UserPaymentMethodFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserPaymentMethodPayload>
+        }
+        findFirst: {
+          args: Prisma.UserPaymentMethodFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserPaymentMethodPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.UserPaymentMethodFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserPaymentMethodPayload>
+        }
+        findMany: {
+          args: Prisma.UserPaymentMethodFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserPaymentMethodPayload>[]
+        }
+        create: {
+          args: Prisma.UserPaymentMethodCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserPaymentMethodPayload>
+        }
+        createMany: {
+          args: Prisma.UserPaymentMethodCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.UserPaymentMethodCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserPaymentMethodPayload>[]
+        }
+        delete: {
+          args: Prisma.UserPaymentMethodDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserPaymentMethodPayload>
+        }
+        update: {
+          args: Prisma.UserPaymentMethodUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserPaymentMethodPayload>
+        }
+        deleteMany: {
+          args: Prisma.UserPaymentMethodDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.UserPaymentMethodUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.UserPaymentMethodUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserPaymentMethodPayload>[]
+        }
+        upsert: {
+          args: Prisma.UserPaymentMethodUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserPaymentMethodPayload>
+        }
+        aggregate: {
+          args: Prisma.UserPaymentMethodAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateUserPaymentMethod>
+        }
+        groupBy: {
+          args: Prisma.UserPaymentMethodGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.UserPaymentMethodGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.UserPaymentMethodCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.UserPaymentMethodCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -1948,6 +2023,18 @@ export const PaymentScalarFieldEnum = {
 } as const
 
 export type PaymentScalarFieldEnum = (typeof PaymentScalarFieldEnum)[keyof typeof PaymentScalarFieldEnum]
+
+
+export const UserPaymentMethodScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  provider: 'provider',
+  accountNumber: 'accountNumber',
+  accountName: 'accountName',
+  isDefault: 'isDefault'
+} as const
+
+export type UserPaymentMethodScalarFieldEnum = (typeof UserPaymentMethodScalarFieldEnum)[keyof typeof UserPaymentMethodScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -2339,6 +2426,7 @@ export type GlobalOmitConfig = {
   order?: Prisma.OrderOmit
   orderItem?: Prisma.OrderItemOmit
   payment?: Prisma.PaymentOmit
+  userPaymentMethod?: Prisma.UserPaymentMethodOmit
 }
 
 /* Types for Logging */

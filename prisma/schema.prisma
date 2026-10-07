@@ -73,6 +73,7 @@ model User {
   cart         Cart?
   orders       Order[]
   stockImports StockImport[]
+  paymentMethods UserPaymentMethod[] 
 
   @@map("users")
 }
@@ -376,4 +377,18 @@ model Payment {
   order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@map("payments")
+}
+
+model UserPaymentMethod {
+  id            String   @id @default(uuid())
+  userId        String   @map("user_id")
+  provider      String   // MOMO, VNPAY, VIETCOMBANK, v.v.
+  accountNumber String   @map("account_number") // Số tài khoản hoặc số thẻ
+  accountName   String   @map("account_name")   // Tên chủ tài khoản
+  isDefault     Boolean  @default(false) @map("is_default")
+
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("user_payment_methods")
 }
