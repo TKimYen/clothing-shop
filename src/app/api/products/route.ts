@@ -130,16 +130,7 @@ export async function GET(request: Request) {
           description: true,
           price: true,
           salePrice: true,
-          saleStartsAt: true,
-          saleEndsAt: true,
           category: {
-            select: {
-              id: true,
-              name: true,
-              slug: true,
-            },
-          },
-          collection: {
             select: {
               id: true,
               name: true,
@@ -148,33 +139,13 @@ export async function GET(request: Request) {
           },
           images: {
             orderBy: { sortOrder: "asc" },
+            take: 1,
             select: {
               id: true,
               url: true,
               altText: true,
               sortOrder: true,
               colorId: true,
-            },
-          },
-          variants: {
-            select: {
-              id: true,
-              sku: true,
-              stockQuantity: true,
-              size: {
-                select: {
-                  id: true,
-                  label: true,
-                  sortOrder: true,
-                },
-              },
-              color: {
-                select: {
-                  id: true,
-                  name: true,
-                  hexCode: true,
-                },
-              },
             },
           },
         },

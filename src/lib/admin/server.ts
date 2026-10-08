@@ -78,6 +78,33 @@ export function adminHandler<P = Record<string, never>>(
   };
 }
 
+/**
+ * Field behind a P2002 unique violation. The classic engine reports it in
+ * `meta.target`; driver adapters (`@prisma/adapter-pg`) nest it under
+ * `meta.driverAdapterError.cause.constraint.fields` instead.
+ */
+function uniqueField(meta: Record<string, unknown> | undefined): string | undefined {
+  const target = meta?.target;
+  if (Array.isArray(target) && typeof target[0] === "string") return target[0];
+  if (typeof target === "string") return target;
+  const adapter = meta?.driverAdapterError as
+    | { cause?: { table?: string; constraint?: { fields?: unknown; index?: string } } }
+    | undefined;
+  const cause = adapter?.cause;
+  const toCamel = (column: string) =>
+    column.replace(/"/g, "").replace(/_([a-z])/g, (_, c: string) => c.toUpperCase());
+
+  const fields = cause?.constraint?.fields;
+  if (Array.isArray(fields) && typeof fields[0] === "string") return toCamel(fields[0]);
+
+  // Postgres index name: `<table>_<column>_key`, e.g. `categories_slug_key`.
+  const index = cause?.constraint?.index;
+  if (index && cause?.table && index.startsWith(`${cause.table}_`) && index.endsWith("_key")) {
+    return toCamel(index.slice(cause.table.length + 1, -"_key".length));
+  }
+  return undefined;
+}
+
 function toErrorResponse(error: unknown) {
   if (error instanceof HttpError) {
     return apiError(error.message, error.status, error.fields);
@@ -92,10 +119,9 @@ function toErrorResponse(error: unknown) {
   }
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
     if (error.code === "P2002") {
-      const target = (error.meta?.target as string[] | string | undefined) ?? [];
-      const field = Array.isArray(target) ? target[0] : target;
+      const field = uniqueField(error.meta);
       return apiError(
-        `${field ? `${field} ` : ""}already exists`,
+        field ? `${field} already exists` : "A record with this value already exists",
         409,
         field ? { [field]: "Already taken" } : undefined,
       );

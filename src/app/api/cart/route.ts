@@ -114,10 +114,20 @@ async function getOrCreateCart(userId: string) {
   return cart;
 }
 
+/** Cập nhật lại thời gian giỏ hàng (updatedAt) mỗi khi item thay đổi. */
+async function touchCart(cartId: string) {
+  await prisma.cart.update({
+    where: { id: cartId },
+    data: { updatedAt: new Date() },
+  });
+}
+
 /**
  * GET /api/cart
  *
- * Lấy giỏ hàng của user hiện tại.
+ * Lấy danh sách sản phẩm trong giỏ hàng của user hiện tại.
+ * `data` là mảng CartItem (kèm variant → product, size, color),
+ * đúng định dạng trang /cart và Header đang dùng.
  */
 export async function GET() {
   try {
@@ -131,39 +141,53 @@ export async function GET() {
       where: {
         userId: user.id,
       },
+      select: { id: true },
+    });
+
+    // User chưa có cart → giỏ hàng rỗng
+    if (!cart) {
+      return apiSuccess([]);
+    }
+
+    const cartItems = await prisma.cartItem.findMany({
+      where: { cartId: cart.id },
+      orderBy: { id: "asc" },
       include: {
-        items: {
+        variant: {
           include: {
-            variant: {
+            product: {
               include: {
-                product: {
-                  include: {
-                    images: {
-                      orderBy: {
-                        sortOrder: "asc",
-                      },
-                      take: 1,
-                    },
+                images: {
+                  orderBy: {
+                    sortOrder: "asc",
                   },
+                  take: 1,
                 },
-                size: true,
-                color: true,
               },
             },
+            size: true,
+            color: true,
           },
         },
       },
     });
 
-    // User chưa có cart
-    if (!cart) {
-      return apiSuccess({
-        id: null,
-        items: [],
-      });
-    }
-
-    return apiSuccess(cart);
+    return apiSuccess(
+      cartItems.map((item) => ({
+        ...item,
+        variant: {
+          ...item.variant,
+          product: {
+            ...item.variant.product,
+            price: Number(item.variant.product.price),
+            salePrice:
+              item.variant.product.salePrice === null
+                ? null
+                : Number(item.variant.product.salePrice),
+          },
+        },
+      })),
+    );
   } catch (error) {
     console.error("Failed to load cart:", error);
 
@@ -174,7 +198,7 @@ export async function GET() {
 /**
  * POST /api/cart
  *
- * Thêm sản phẩm vào cart.
+ * Thêm sản phẩm vào cart. Nếu variant đã có thì cộng dồn số lượng.
  *
  * Body:
  * {
@@ -250,6 +274,8 @@ export async function POST(request: Request) {
         },
       });
 
+      await touchCart(cart.id);
+
       return apiSuccess(updatedItem);
     }
 
@@ -265,6 +291,8 @@ export async function POST(request: Request) {
         quantity,
       },
     });
+
+    await touchCart(cart.id);
 
     return apiSuccess(cartItem);
   } catch (error) {
@@ -348,6 +376,8 @@ export async function PATCH(request: Request) {
       },
     });
 
+    await touchCart(cart.id);
+
     return apiSuccess(updatedItem);
   } catch (error) {
     console.error("Failed to update cart item:", error);
@@ -403,6 +433,8 @@ export async function DELETE(request: Request) {
         id: cartItem.id,
       },
     });
+
+    await touchCart(cart.id);
 
     return apiSuccess({
       message: "Item removed from cart",
