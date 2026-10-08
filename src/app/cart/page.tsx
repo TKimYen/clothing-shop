@@ -53,14 +53,46 @@ export default function CartPage() {
 
   // Thay đổi số lượng (Tăng / Giảm)
   const updateQuantity = async (itemId: string, newQty: number) => {
+    const item = cartItems.find((i) => i.id === itemId);
+    if (!item) return;
+
+    const stock = item.variant.stockQuantity;
+
+    // Chặn ở giao diện
     if (newQty < 1) return;
-    // Gọi lại API thêm với số lượng mới hoặc tạo một API update riêng, tạm thời ta dùng lại API thêm
-    // Hoặc đơn giản cập nhật state giao diện trước cho mượt
-    setCartItems(
-      cartItems.map((item) =>
-        item.id === itemId ? { ...item, quantity: newQty } : item,
-      ),
-    );
+    if (newQty > item.quantity && newQty > stock) {
+      // Chỉ chặn khi TĂNG vượt tồn kho
+      alert(`Chỉ còn ${stock} sản phẩm trong kho`);
+      return;
+    }
+    if (newQty < item.quantity && newQty > stock) {
+      // Đang vượt tồn kho mà bấm giảm → đưa thẳng về bằng tồn kho
+      if (stock < 1) {
+        alert("Sản phẩm đã hết hàng, vui lòng xóa khỏi giỏ hàng");
+        return;
+      }
+      newQty = stock;
+    }
+
+    try {
+      const res = await fetch("/api/cart", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ itemId, quantity: newQty }),
+      });
+      const result = await res.json();
+
+      if (res.ok && result.success) {
+        setCartItems((items) =>
+          items.map((i) => (i.id === itemId ? { ...i, quantity: newQty } : i)),
+        );
+      } else {
+        alert(result.error?.message ?? "Không thể cập nhật số lượng");
+        fetchCart(); // tải lại để lấy tồn kho mới nhất
+      }
+    } catch (error) {
+      console.error("Lỗi cập nhật số lượng:", error);
+    }
   };
 
   // Xóa sản phẩm khỏi giỏ hàng trên DB
@@ -94,6 +126,11 @@ export default function CartPage() {
       </div>
     );
   }
+
+  //Khóa nút thanh toán nếu có sản phẩm vượt tồn kho
+  const hasStockIssue = cartItems.some(
+    (i) => i.quantity > i.variant.stockQuantity,
+  );
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -141,6 +178,12 @@ export default function CartPage() {
                     <h3 className="font-semibold text-gray-800">
                       {product.name}
                     </h3>
+                    {item.quantity > item.variant.stockQuantity ? (
+                      <p className="text-xs text-red-600">
+                        Chỉ còn {item.variant.stockQuantity} sản phẩm, vui lòng
+                        giảm số lượng
+                      </p>
+                    ) : null}
                     <p className="text-sm text-gray-500 mt-1">
                       Size:{" "}
                       <span className="font-medium text-gray-700">
@@ -160,7 +203,8 @@ export default function CartPage() {
                   <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
                     <button
                       onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                      className="px-3 py-1 bg-gray-50 hover:bg-gray-100 text-gray-600 font-bold"
+                      disabled={item.quantity <= 1}
+                      className="px-3 py-1 bg-gray-50 hover:bg-gray-100 text-gray-600 font-bold disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                       -
                     </button>
@@ -169,7 +213,8 @@ export default function CartPage() {
                     </span>
                     <button
                       onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                      className="px-3 py-1 bg-gray-50 hover:bg-gray-100 text-gray-600 font-bold"
+                      disabled={item.quantity >= item.variant.stockQuantity}
+                      className="px-3 py-1 bg-gray-50 hover:bg-gray-100 text-gray-600 font-bold disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                       +
                     </button>
@@ -218,13 +263,29 @@ export default function CartPage() {
               </div>
             </div>
 
-            <Link
-              href="/checkout"
-              className="w-full bg-[#17579B] hover:opacity-90 text-white py-3.5 rounded-xl font-medium flex items-center justify-center gap-2 transition-colors shadow-md block text-center"
-            >
-              <span>Tiến hành thanh toán</span>
-              <ArrowRight size={18} />
-            </Link>
+            {hasStockIssue ? (
+              <>
+                <button
+                  type="button"
+                  disabled
+                  className="w-full bg-gray-300 text-white py-3.5 rounded-xl font-medium flex items-center justify-center gap-2 cursor-not-allowed"
+                >
+                  <span>Tiến hành thanh toán</span>
+                  <ArrowRight size={18} />
+                </button>
+                <p className="mt-3 text-center text-xs text-red-600">
+                  Có sản phẩm vượt quá tồn kho, vui lòng giảm số lượng hoặc xóa
+                </p>
+              </>
+            ) : (
+              <Link
+                href="/checkout"
+                className="w-full bg-[#17579B] hover:opacity-90 text-white py-3.5 rounded-xl font-medium flex items-center justify-center gap-2 transition-colors shadow-md block text-center"
+              >
+                <span>Tiến hành thanh toán</span>
+                <ArrowRight size={18} />
+              </Link>
+            )}
           </div>
         </div>
       )}

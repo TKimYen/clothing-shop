@@ -3,12 +3,17 @@ import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/src/lib/db";
 
+class OutOfStockError extends Error {}
+
 // 1. Lấy danh sách đơn hàng của user hiện tại
 export async function GET() {
   try {
     const { userId: clerkId } = await auth();
     if (!clerkId) {
-      return NextResponse.json({ success: false, error: { message: "Unauthorized" } }, { status: 401 });
+      return NextResponse.json(
+        { success: false, error: { message: "Unauthorized" } },
+        { status: 401 },
+      );
     }
 
     const user = await prisma.user.findUnique({
@@ -31,7 +36,10 @@ export async function GET() {
     return NextResponse.json({ success: true, data: orders });
   } catch (error) {
     console.error("Lỗi lấy danh sách đơn hàng:", error);
-    return NextResponse.json({ success: false, error: { message: "Lỗi hệ thống" } }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: { message: "Lỗi hệ thống" } },
+      { status: 500 },
+    );
   }
 }
 
@@ -40,7 +48,10 @@ export async function POST(request: Request) {
   try {
     const { userId: clerkId } = await auth();
     if (!clerkId) {
-      return NextResponse.json({ success: false, error: { message: "Unauthorized" } }, { status: 401 });
+      return NextResponse.json(
+        { success: false, error: { message: "Unauthorized" } },
+        { status: 401 },
+      );
     }
 
     const user = await prisma.user.findUnique({
@@ -48,14 +59,28 @@ export async function POST(request: Request) {
     });
 
     if (!user) {
-      return NextResponse.json({ success: false, error: { message: "User not found" } }, { status: 404 });
+      return NextResponse.json(
+        { success: false, error: { message: "User not found" } },
+        { status: 404 },
+      );
     }
 
     const body = await request.json();
-    const { addressId, paymentMethod = "COD", productDiscount = 0, shipDiscount = 0 } = body;
+    const {
+      addressId,
+      paymentMethod = "COD",
+      productDiscount = 0,
+      shipDiscount = 0,
+    } = body;
 
     if (!addressId) {
-      return NextResponse.json({ success: false, error: { message: "Vui lòng chọn địa chỉ nhận hàng" } }, { status: 400 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: { message: "Vui lòng chọn địa chỉ nhận hàng" },
+        },
+        { status: 400 },
+      );
     }
 
     const address = await prisma.address.findUnique({
@@ -63,7 +88,10 @@ export async function POST(request: Request) {
     });
 
     if (!address) {
-      return NextResponse.json({ success: false, error: { message: "Địa chỉ không tồn tại" } }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: { message: "Địa chỉ không tồn tại" } },
+        { status: 400 },
+      );
     }
 
     const cart = await prisma.cart.findUnique({
@@ -72,31 +100,39 @@ export async function POST(request: Request) {
         items: {
           include: {
             variant: {
-              include: { 
+              include: {
                 product: true,
                 color: true,
-                size: true
-              }
-            }
-          }
-        }
-      }
+                size: true,
+              },
+            },
+          },
+        },
+      },
     });
 
     if (!cart || cart.items.length === 0) {
-      return NextResponse.json({ success: false, error: { message: "Giỏ hàng trống" } }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: { message: "Giỏ hàng trống" } },
+        { status: 400 },
+      );
     }
 
     let subtotal = 0;
     for (const item of cart.items) {
-      const price = item.variant.product.salePrice ?? item.variant.product.price;
+      const price =
+        item.variant.product.salePrice ?? item.variant.product.price;
       subtotal += Number(price) * item.quantity;
     }
 
-    const originalShippingFee = subtotal >= 600000 || subtotal === 0 ? 0 : 30000;
+    const originalShippingFee =
+      subtotal >= 600000 || subtotal === 0 ? 0 : 30000;
     const finalShippingFee = Math.max(0, originalShippingFee - shipDiscount);
     const totalDiscount = productDiscount + shipDiscount;
-    const totalAmount = Math.max(0, subtotal + finalShippingFee - totalDiscount);
+    const totalAmount = Math.max(
+      0,
+      subtotal + finalShippingFee - totalDiscount,
+    );
 
     const orderCode = "DH" + Date.now().toString().slice(-10);
 
@@ -117,7 +153,26 @@ export async function POST(request: Request) {
       });
 
       for (const item of cart.items) {
-        const price = item.variant.product.salePrice ?? item.variant.product.price;
+        const price =
+          item.variant.product.salePrice ?? item.variant.product.price;
+        // Trừ kho có điều kiện: chỉ trừ khi còn đủ hàng.
+        // Kiểm tra và trừ cùng lúc nên 2 người mua đồng thời cũng không thể làm kho bị âm.
+        const updated = await tx.productVariant.updateMany({
+          where: {
+            id: item.variantId,
+            stockQuantity: { gte: item.quantity },
+          },
+          data: {
+            stockQuantity: { decrement: item.quantity },
+          },
+        });
+
+        if (updated.count === 0) {
+          // Không đủ hàng → throw để rollback toàn bộ đơn
+          throw new OutOfStockError(
+            `"${item.variant.product.name}" (${item.variant.color?.name} / ${item.variant.size?.label}) không đủ hàng`,
+          );
+        }
         await tx.orderItem.create({
           data: {
             orderId: newOrder.id,
@@ -149,10 +204,16 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: true, data: order });
   } catch (error) {
+    if (error instanceof OutOfStockError) {
+      return NextResponse.json(
+        { success: false, error: { message: error.message } },
+        { status: 400 },
+      );
+    }
     console.error("Lỗi tạo đơn hàng:", error);
     return NextResponse.json(
       { success: false, error: { message: "Lỗi hệ thống khi tạo đơn hàng" } },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
