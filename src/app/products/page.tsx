@@ -353,6 +353,7 @@ export default function ProductsPage() {
 
       const result = await response.json();
       if (response.ok && result.success) {
+        window.dispatchEvent(new Event('cart-updated'));
         alert(`Đã thêm "${activeProduct?.name}" vào giỏ hàng thành công!`);
         handleCloseQuickAdd();
       } else {

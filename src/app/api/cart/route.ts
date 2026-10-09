@@ -151,7 +151,7 @@ export async function GET() {
 
     const cartItems = await prisma.cartItem.findMany({
       where: { cartId: cart.id },
-      orderBy: { id: "asc" },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
       include: {
         variant: {
           include: {
@@ -271,6 +271,7 @@ export async function POST(request: Request) {
         },
         data: {
           quantity: newQuantity,
+          createdAt: new Date(),
         },
       });
 

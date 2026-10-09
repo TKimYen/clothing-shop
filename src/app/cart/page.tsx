@@ -31,6 +31,9 @@ type CartItem = {
 export default function CartPage() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [editingQuantities, setEditingQuantities] = useState<
+    Record<string, string>
+  >({});
 
   // Hàm tải giỏ hàng từ API / Database
   const fetchCart = async () => {
@@ -92,6 +95,41 @@ export default function CartPage() {
       }
     } catch (error) {
       console.error("Lỗi cập nhật số lượng:", error);
+    }
+  };
+
+  const handleQuantityInput = (item: CartItem, value: string) => {
+    const digitsOnly = value.replace(/\D/g, "");
+
+    if (digitsOnly === "") {
+      setEditingQuantities((quantities) => ({
+        ...quantities,
+        [item.id]: "",
+      }));
+      return;
+    }
+
+    const quantity = Math.min(Number(digitsOnly), item.variant.stockQuantity);
+    setEditingQuantities((quantities) => ({
+      ...quantities,
+      [item.id]: String(quantity),
+    }));
+  };
+
+  const commitQuantityInput = (item: CartItem) => {
+    const inputValue = editingQuantities[item.id];
+    const quantity = inputValue
+      ? Math.min(Number(inputValue), item.variant.stockQuantity)
+      : item.quantity;
+
+    setEditingQuantities((quantities) => {
+      const nextQuantities = { ...quantities };
+      delete nextQuantities[item.id];
+      return nextQuantities;
+    });
+
+    if (quantity !== item.quantity) {
+      void updateQuantity(item.id, quantity);
     }
   };
 
@@ -166,12 +204,17 @@ export default function CartPage() {
                   key={item.id}
                   className="flex gap-4 p-4 bg-white rounded-xl border border-gray-100 shadow-sm items-center"
                 >
-                  <div className="w-20 h-24 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
+                  <div className="relative w-20 h-24 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
                     <img
                       src={imageUrl}
                       alt={product.name}
                       className="w-full h-full object-cover"
                     />
+                    {item.variant.stockQuantity <= 10 ? (
+                      <span className="absolute inset-x-0 bottom-0 bg-black/55 px-1 py-1 text-center text-[10px] font-medium leading-tight text-white">
+                        Còn {item.variant.stockQuantity}
+                      </span>
+                    ) : null}
                   </div>
 
                   <div className="flex-grow">
@@ -201,23 +244,22 @@ export default function CartPage() {
 
                   {/* Điều chỉnh số lượng */}
                   <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
-                    <button
-                      onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                      disabled={item.quantity <= 1}
-                      className="px-3 py-1 bg-gray-50 hover:bg-gray-100 text-gray-600 font-bold disabled:opacity-40 disabled:cursor-not-allowed"
-                    >
-                      -
-                    </button>
-                    <span className="px-4 py-1 text-sm font-semibold">
-                      {item.quantity}
-                    </span>
-                    <button
-                      onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                      disabled={item.quantity >= item.variant.stockQuantity}
-                      className="px-3 py-1 bg-gray-50 hover:bg-gray-100 text-gray-600 font-bold disabled:opacity-40 disabled:cursor-not-allowed"
-                    >
-                      +
-                    </button>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={editingQuantities[item.id] ?? String(item.quantity)}
+                      onChange={(event) =>
+                        handleQuantityInput(item, event.target.value)
+                      }
+                      onBlur={() => commitQuantityInput(item)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          event.currentTarget.blur();
+                        }
+                      }}
+                      aria-label={`Số lượng ${product.name}`}
+                      className="w-16 px-2 py-1 text-center text-sm font-semibold outline-none"
+                    />
                   </div>
 
                   {/* Nút xóa */}
