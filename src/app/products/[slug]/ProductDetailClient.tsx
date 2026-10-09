@@ -111,6 +111,7 @@ export default function ProductDetailClient({
 
       if (res.ok && result.success) {
         setAddedToCart(true);
+        window.dispatchEvent(new Event("cart-updated"));
       } else if (res.status === 401) {
         setError("Vui lòng đăng nhập để thêm vào giỏ hàng");
       } else {

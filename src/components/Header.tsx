@@ -7,10 +7,6 @@ import { Search, ShoppingCart, User, Bell } from 'lucide-react';
 import { FormEvent, useState, useEffect } from 'react';
 import AuthButtons from "../components/AuthButtons";
 
-type CartItemCount = {
-  quantity: number;
-};
-
 export default function Header() {
     const pathname = usePathname();
     const router = useRouter();
@@ -24,9 +20,8 @@ export default function Header() {
                 const res = await fetch('/api/cart', { cache: 'no-store' });
                 const result = await res.json();
                 if (result.success && Array.isArray(result.data)) {
-                    // Tính tổng số lượng (quantity) của tất cả các item trong giỏ
-                    const totalQuantity = result.data.reduce((sum: number, item: CartItemCount) => sum + item.quantity, 0);
-                    setCartCount(totalQuantity);
+                    // Badge hiển thị số sản phẩm/biến thể khác nhau, không phải tổng số lượng.
+                    setCartCount(result.data.length);
                 }
             } catch (error) {
                 console.error("Không thể tải số lượng giỏ hàng:", error);
@@ -34,8 +29,16 @@ export default function Header() {
         }
 
         fetchCartCount();
-        
-        // Lắng nghe sự kiện hoặc định kỳ có thể làm mới, tạm thời chạy khi load trang
+
+        const handleCartUpdated = () => {
+            void fetchCartCount();
+        };
+
+        window.addEventListener('cart-updated', handleCartUpdated);
+
+        return () => {
+            window.removeEventListener('cart-updated', handleCartUpdated);
+        };
     }, [pathname]); // Cập nhật lại mỗi khi đổi trang
 
     const handleSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
