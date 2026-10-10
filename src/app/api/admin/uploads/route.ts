@@ -27,7 +27,7 @@ export const POST = adminHandler(async (request) => {
 
   const name = `${randomUUID()}.${ext}`;
   await mkdir(PRODUCT_UPLOAD_DIR, { recursive: true });
-  await writeFile(path.join(PRODUCT_UPLOAD_DIR, name), Buffer.from(await file.arrayBuffer()));
+  await writeFile(path.join(/*turbopackIgnore: true*/ PRODUCT_UPLOAD_DIR, name), Buffer.from(await file.arrayBuffer()));
 
   return { url: `${PRODUCT_UPLOAD_URL}/${name}` };
 });

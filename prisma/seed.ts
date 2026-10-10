@@ -116,7 +116,7 @@ async function main() {
     },
   });
 
-  const sizeXL = await prisma.size.upsert({
+  await prisma.size.upsert({
     where: {
       label: "XL",
     },
@@ -510,7 +510,7 @@ async function main() {
     },
   });
 
-  const admin = await prisma.user.upsert({
+  await prisma.user.upsert({
     where: {
       email: "admin@example.com",
     },
@@ -531,7 +531,7 @@ async function main() {
   // 9. ADDRESS
   // ============================================================
 
-  const address = await prisma.address.create({
+  await prisma.address.create({
     data: {
       userId: user.id,
       recipientName: "Nguyen Van A",
