@@ -2,7 +2,7 @@
 'use client';
 
 import { Heart, Filter, Search, ShoppingCart, X, Loader2 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
@@ -113,21 +113,51 @@ function formatPrice(value: number) {
   return `${value.toLocaleString('vi-VN')}đ`;
 }
 
+// Đọc bộ lọc từ URL
+function readParams(searchParams: URLSearchParams) {
+  const sort = searchParams.get('sort')?.trim() as SortValue | null;
+  return {
+    collection: searchParams.get('collection')?.trim() || '',
+    category: searchParams.get('category')?.trim() || 'all',
+    sort: sort && sortOptions.some((option) => option.value === sort) ? sort : null,
+    search: searchParams.get('search') ?? searchParams.get('q') ?? '',
+    minPrice: searchParams.get('minPrice') ?? '',
+    maxPrice: searchParams.get('maxPrice') ?? '',
+    page: Number(searchParams.get('page')) || 1,
+  };
+}
+
+// useSearchParams() cần nằm trong <Suspense> để Next build được trang này
 export default function ProductsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex justify-center py-20">
+          <Loader2 className="animate-spin text-gray-400" size={32} />
+        </div>
+      }
+    >
+      <ProductsPageContent />
+    </Suspense>
+  );
+}
+
+function ProductsPageContent() {
   const searchParams = useSearchParams();
-  const [collectionFilter, setCollectionFilter] = useState('');
-  const [keyword, setKeyword] = useState('');
-  const [minPriceInput, setMinPriceInput] = useState('');
-  const [maxPriceInput, setMaxPriceInput] = useState('');
+  const [initialParams] = useState(() => readParams(searchParams));
+  const [collectionFilter, setCollectionFilter] = useState(initialParams.collection);
+  const [keyword, setKeyword] = useState(initialParams.search);
+  const [minPriceInput, setMinPriceInput] = useState(initialParams.minPrice);
+  const [maxPriceInput, setMaxPriceInput] = useState(initialParams.maxPrice);
   const [products, setProducts] = useState<ProductItem[]>([]);
   const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [selectedCategorySlug, setSelectedCategorySlug] = useState<string>('all');
-  const [sortValue, setSortValue] = useState<SortValue>('newest');
+  const [selectedCategorySlug, setSelectedCategorySlug] = useState<string>(initialParams.category);
+  const [sortValue, setSortValue] = useState<SortValue>(initialParams.sort ?? 'newest');
 
   // Phân trang
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(initialParams.page);
   const [totalPages, setTotalPages] = useState(1);
 
   // State cho Modal Quick Add (chọn nhanh phân loại từ DB)
@@ -138,26 +168,19 @@ export default function ProductsPage() {
   const [isFetchingDetail, setIsFetchingDetail] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
 
-  // Đồng bộ searchParams từ URL
-  useEffect(() => {
-    const collection = searchParams.get('collection')?.trim() || '';
-    const category = searchParams.get('category')?.trim() || 'all';
-    const sort = searchParams.get('sort')?.trim() as SortValue | null;
-    const search = searchParams.get('search') ?? searchParams.get('q') ?? '';
-    const minPrice = searchParams.get('minPrice') ?? '';
-    const maxPrice = searchParams.get('maxPrice') ?? '';
-    const pageParam = Number(searchParams.get('page')) || 1;
-
-    setCollectionFilter(collection);
-    setSelectedCategorySlug(category);
-    if (sort && sortOptions.some((option) => option.value === sort)) {
-      setSortValue(sort);
-    }
-    setKeyword(search);
-    setMinPriceInput(minPrice);
-    setMaxPriceInput(maxPrice);
-    setCurrentPage(pageParam);
-  }, [searchParams]);
+  // Đồng bộ searchParams từ URL (cập nhật ngay khi render, không cần effect)
+  const [prevSearchParams, setPrevSearchParams] = useState(searchParams);
+  if (searchParams !== prevSearchParams) {
+    setPrevSearchParams(searchParams);
+    const params = readParams(searchParams);
+    setCollectionFilter(params.collection);
+    setSelectedCategorySlug(params.category);
+    if (params.sort) setSortValue(params.sort);
+    setKeyword(params.search);
+    setMinPriceInput(params.minPrice);
+    setMaxPriceInput(params.maxPrice);
+    setCurrentPage(params.page);
+  }
 
   // Đồng bộ URL state
   useEffect(() => {
@@ -286,6 +309,7 @@ export default function ProductsPage() {
       if (response.ok && result.success) {
         const fullProduct = result.data as ProductDetail;
         setActiveProduct(fullProduct);
+        setQuantity(1);
 
         const firstVariant = fullProduct.variants?.find((v) => v.stockQuantity > 0) || fullProduct.variants?.[0];
         if (firstVariant) {
@@ -640,6 +664,7 @@ export default function ProductsPage() {
                         type="button"
                         onClick={() => {
                           setSelectedColorId(v.color.id);
+                          setQuantity(1);
                           const firstAvailableSize = activeProduct.variants?.find(
                             (item) => item.color.id === v.color.id && item.stockQuantity > 0
                           ) || activeProduct.variants?.find((item) => item.color.id === v.color.id);
@@ -669,7 +694,10 @@ export default function ProductsPage() {
                         key={v.size.id}
                         type="button"
                         disabled={!available}
-                        onClick={() => setSelectedSizeId(v.size.id)}
+                        onClick={() => {
+                          setSelectedSizeId(v.size.id);
+                          setQuantity(1);
+                        }}
                         className={`px-4 py-2 rounded-lg border text-sm font-medium transition-all cursor-pointer ${
                           isSelected ? 'border-[#164F8D] bg-[#164F8D] text-white' : 'border-gray-200 text-gray-700'
                         } ${!available ? 'opacity-40 line-through cursor-not-allowed bg-gray-50' : ''}`}
@@ -688,15 +716,17 @@ export default function ProductsPage() {
                   <button
                     type="button"
                     onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                    className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold"
+                    disabled={quantity <= 1}
+                    className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold disabled:opacity-40"
                   >
                     -
                   </button>
                   <span className="px-4 py-1 text-sm font-semibold text-gray-800">{quantity}</span>
                   <button
                     type="button"
-                    onClick={() => setQuantity((q) => q + 1)}
-                    className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold"
+                    onClick={() => setQuantity((q) => Math.min(selectedVariant?.stockQuantity ?? 1, q + 1))}
+                    disabled={quantity >= (selectedVariant?.stockQuantity ?? 1)}
+                    className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold disabled:opacity-40"
                   >
                     +
                   </button>

@@ -34,6 +34,15 @@ type SlideItem = {
   image: string;
 };
 
+type CollectionApiItem = {
+  name: string;
+  slug: string;
+  season: string;
+  year: number;
+  description: string | null;
+  bannerUrl: string | null;
+};
+
 function formatPrice(value: number) {
   return `${value.toLocaleString("vi-VN")}đ`;
 }
@@ -63,7 +72,7 @@ export default function Home() {
         const dataList = result.data || result;
         
         if (Array.isArray(dataList) && dataList.length > 0) {
-          const collectionSlides: SlideItem[] = dataList.map((col: any) => ({
+          const collectionSlides: SlideItem[] = dataList.map((col: CollectionApiItem) => ({
             tagline: `BỘ SƯU TẬP ${col.season} ${col.year}`,
             title: col.name,
             description: col.description || `Khám phá các thiết kế mới nhất trong bộ sưu tập ${col.name}.`,

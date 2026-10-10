@@ -5,7 +5,7 @@ import path from "node:path";
  * because Next only serves files that existed in `public/` at build time;
  * `GET /api/uploads/products/[name]` streams them back instead.
  */
-export const PRODUCT_UPLOAD_DIR = path.join(process.cwd(), "uploads", "products");
+export const PRODUCT_UPLOAD_DIR = path.join(/*turbopackIgnore: true*/ process.cwd(), "uploads", "products");
 export const PRODUCT_UPLOAD_URL = "/api/uploads/products";
 export const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
 

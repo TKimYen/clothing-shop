@@ -43,15 +43,13 @@ export default function CartPage() {
       if (result.success) {
         setCartItems(result.data);
       }
-    } catch (error) {
-      console.error("Lỗi tải giỏ hàng:", error);
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchCart();
+    fetchCart().catch((error) => console.error("Lỗi tải giỏ hàng:", error));
   }, []);
 
   // Thay đổi số lượng (Tăng / Giảm)
@@ -91,7 +89,7 @@ export default function CartPage() {
         );
       } else {
         alert(result.error?.message ?? "Không thể cập nhật số lượng");
-        fetchCart(); // tải lại để lấy tồn kho mới nhất
+        fetchCart().catch((error) => console.error("Lỗi tải giỏ hàng:", error));
       }
     } catch (error) {
       console.error("Lỗi cập nhật số lượng:", error);
@@ -247,7 +245,9 @@ export default function CartPage() {
                     <input
                       type="text"
                       inputMode="numeric"
-                      value={editingQuantities[item.id] ?? String(item.quantity)}
+                      value={
+                        editingQuantities[item.id] ?? String(item.quantity)
+                      }
                       onChange={(event) =>
                         handleQuantityInput(item, event.target.value)
                       }

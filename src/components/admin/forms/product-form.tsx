@@ -119,7 +119,7 @@ export function ProductForm({
       return;
     }
     if (invalid.images) setTab("images");
-  }, []);
+  }, [setTab]);
 
   const handleSubmit = async (values: ProductFormOutput) => {
     try {
