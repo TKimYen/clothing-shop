@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Search, ShoppingCart, User, Bell } from 'lucide-react';
+import { Search, ShoppingCart } from 'lucide-react';
 import { FormEvent, useState, useEffect } from 'react';
 import AuthButtons from "../components/AuthButtons";
 
