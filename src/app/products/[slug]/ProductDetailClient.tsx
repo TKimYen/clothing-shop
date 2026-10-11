@@ -85,6 +85,10 @@ export default function ProductDetailClient({
     );
     setSelectedColorId(colorId);
     setSelectedSizeId(nextSize?.size.id ?? "");
+    const nextColorImage = product.images.find((image) => image.colorId === colorId);
+    if (nextColorImage) {
+      setSelectedImageId(nextColorImage.id);
+    }
     setAddedToCart(false);
     setQuantity(1);
     setError("");
@@ -133,7 +137,7 @@ export default function ProductDetailClient({
         ← Quay lại sản phẩm
       </Link>
 
-      <div className="mt-6 grid grid-cols-1 gap-10 lg:grid-cols-2">
+      <div className="mt-6 grid grid-cols-1 gap-8 md:gap-10 lg:grid-cols-2">
         <section>
           <div className="aspect-[4/5] overflow-hidden rounded-xl bg-gray-100">
             {selectedImage ? (
@@ -266,7 +270,7 @@ export default function ProductDetailClient({
             </div>
           </div>
 
-          <div className="mt-6 rounded-lg bg-gray-50 px-4 py-3 text-sm">
+          <div className="mt-6 rounded-lg bg-gray-50 px-4 py-3 text-sm" aria-live="polite">
             {selectedVariant && selectedVariant.stockQuantity > 0 ? (
               <span className="font-medium text-green-700">
                 ✓ Còn {selectedVariant.stockQuantity} sản phẩm

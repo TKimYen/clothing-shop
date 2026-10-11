@@ -1,8 +1,8 @@
 ﻿// src/app/products/page.tsx
 'use client';
 
-import { Heart, Filter, Search, ShoppingCart, X, Loader2 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { Heart, Filter, Search, ShoppingCart, X, Loader2, RefreshCw } from 'lucide-react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
@@ -129,6 +129,7 @@ export default function ProductsPage() {
   // Phân trang
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [reloadToken, setReloadToken] = useState(0);
 
   // State cho Modal Quick Add (chọn nhanh phân loại từ DB)
   const [activeProduct, setActiveProduct] = useState<ProductDetail | null>(null);
@@ -245,7 +246,7 @@ export default function ProductsPage() {
       });
 
     return () => { isActive = false; };
-  }, [selectedCategorySlug, sortValue, collectionFilter, keyword, minPriceInput, maxPriceInput, currentPage]);
+  }, [selectedCategorySlug, sortValue, collectionFilter, keyword, minPriceInput, maxPriceInput, currentPage, reloadToken]);
 
   const sidebarItems = useMemo(
     () => [
@@ -477,8 +478,27 @@ export default function ProductsPage() {
 
         <div className="lg:col-span-3">
           {errorMessage ? (
-            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 mb-6">
-              {errorMessage}
+            <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-4 text-sm text-red-700" role="alert">
+              <p className="font-semibold">Không thể tải danh sách sản phẩm</p>
+              <p className="mt-1">{errorMessage}</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setReloadToken((token) => token + 1)}
+                  className="inline-flex items-center gap-2 rounded-lg bg-[#17579B] px-3 py-2 text-xs font-semibold text-white hover:opacity-90"
+                >
+                  <RefreshCw size={14} /> Thử lại
+                </button>
+                {hasActiveFilters ? (
+                  <button
+                    type="button"
+                    onClick={resetFilters}
+                    className="rounded-lg border border-red-200 bg-white px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-100"
+                  >
+                    Xóa bộ lọc
+                  </button>
+                ) : null}
+              </div>
             </div>
           ) : null}
 
@@ -493,8 +513,14 @@ export default function ProductsPage() {
               ))}
             </div>
           ) : products.length === 0 ? (
-            <div className="rounded-xl border border-gray-200 bg-gray-50 px-6 py-10 text-center text-gray-600">
-              Không có sản phẩm phù hợp.
+            <div className="rounded-xl border border-gray-200 bg-gray-50 px-6 py-12 text-center text-gray-600">
+              <p className="font-medium">Không có sản phẩm phù hợp.</p>
+              <p className="mt-1 text-sm text-gray-500">Hãy thử thay đổi từ khóa hoặc bộ lọc.</p>
+              {hasActiveFilters ? (
+                <button type="button" onClick={resetFilters} className="mt-4 rounded-lg bg-[#17579B] px-4 py-2 text-sm font-semibold text-white hover:opacity-90">
+                  Xóa bộ lọc
+                </button>
+              ) : null}
             </div>
           ) : (
             <>
@@ -558,43 +584,48 @@ export default function ProductsPage() {
 
               {/* PAGINATION UI */}
               {totalPages > 1 && (
-                <div className="flex justify-center items-center gap-2 mt-10">
+                <nav className="mt-10 flex flex-wrap items-center justify-center gap-2" aria-label="Phân trang sản phẩm">
                   <button
                     type="button"
                     onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
                     disabled={currentPage === 1}
-                    className="px-4 py-2 text-sm border rounded-lg border-gray-300 text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+                    aria-label="Trang trước"
+                    className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40 sm:px-4"
                   >
                     Trang trước
                   </button>
 
                   <div className="flex items-center gap-1">
-                    {Array.from({ length: totalPages }).map((_, index) => {
-                      const pageNum = index + 1;
-                      return (
-                        <button
-                          key={pageNum}
-                          type="button"
-                          onClick={() => setCurrentPage(pageNum)}
-                          className={`w-9 h-9 text-sm rounded-lg font-medium transition-colors ${
-                            currentPage === pageNum ? 'bg-[#164F8D] text-white' : 'border border-gray-300 text-gray-700 hover:bg-gray-100'
-                          }`}
-                        >
-                          {pageNum}
-                        </button>
-                      );
-                    })}
+                    {Array.from({ length: totalPages }, (_, index) => index + 1)
+                      .filter((page) => page === 1 || page === totalPages || Math.abs(page - currentPage) <= 1)
+                      .map((pageNum, index, pages) => (
+                        <Fragment key={pageNum}>
+                          {index > 0 && pages[index - 1] !== pageNum - 1 ? <span className="px-1 text-gray-400">…</span> : null}
+                          <button
+                            type="button"
+                            onClick={() => setCurrentPage(pageNum)}
+                            aria-current={currentPage === pageNum ? 'page' : undefined}
+                            aria-label={`Trang ${pageNum}`}
+                            className={`h-9 w-9 rounded-lg text-sm font-medium transition-colors ${
+                              currentPage === pageNum ? 'bg-[#164F8D] text-white' : 'border border-gray-300 text-gray-700 hover:bg-gray-100'
+                            }`}
+                          >
+                            {pageNum}
+                          </button>
+                        </Fragment>
+                      ))}
                   </div>
 
                   <button
                     type="button"
                     onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
                     disabled={currentPage === totalPages}
-                    className="px-4 py-2 text-sm border rounded-lg border-gray-300 text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+                    aria-label="Trang sau"
+                    className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40 sm:px-4"
                   >
                     Trang sau
                   </button>
-                </div>
+                </nav>
               )}
             </>
           )}

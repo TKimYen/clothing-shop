@@ -244,6 +244,15 @@ export default function CartPage() {
 
                   {/* Điều chỉnh số lượng */}
                   <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => void updateQuantity(item.id, item.quantity - 1)}
+                      disabled={item.quantity <= 1}
+                      aria-label={`Giảm số lượng ${product.name}`}
+                      className="px-3 py-1 bg-gray-50 text-gray-600 font-bold hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      -
+                    </button>
                     <input
                       type="text"
                       inputMode="numeric"
@@ -260,6 +269,15 @@ export default function CartPage() {
                       aria-label={`Số lượng ${product.name}`}
                       className="w-16 px-2 py-1 text-center text-sm font-semibold outline-none"
                     />
+                    <button
+                      type="button"
+                      onClick={() => void updateQuantity(item.id, item.quantity + 1)}
+                      disabled={item.quantity >= item.variant.stockQuantity}
+                      aria-label={`Tăng số lượng ${product.name}`}
+                      className="px-3 py-1 bg-gray-50 text-gray-600 font-bold hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      +
+                    </button>
                   </div>
 
                   {/* Nút xóa */}

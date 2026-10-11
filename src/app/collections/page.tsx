@@ -1,7 +1,7 @@
 ﻿'use client';
 
 import Link from 'next/link';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, RefreshCw } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 type CollectionItem = {
@@ -110,8 +110,16 @@ export default function CollectionsPage() {
       </div>
 
       {errorMessage ? (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 mb-6">
-          {errorMessage}
+        <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-4 text-sm text-red-700" role="alert">
+          <p className="font-semibold">Không thể tải bộ sưu tập</p>
+          <p className="mt-1">{errorMessage}</p>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="mt-3 inline-flex items-center gap-2 rounded-lg bg-[#17579B] px-3 py-2 text-xs font-semibold text-white hover:opacity-90"
+          >
+            <RefreshCw size={14} /> Thử lại
+          </button>
         </div>
       ) : null}
 
@@ -134,8 +142,11 @@ export default function CollectionsPage() {
           ))}
         </div>
       ) : collections.length === 0 ? (
-        <div className="rounded-xl border border-gray-200 bg-gray-50 px-6 py-10 text-center text-gray-600">
-          Chưa có bộ sưu tập đang hoạt động.
+        <div className="rounded-xl border border-gray-200 bg-gray-50 px-6 py-12 text-center text-gray-600">
+          <p className="font-medium">Chưa có bộ sưu tập đang hoạt động.</p>
+          <Link href="/products" className="mt-4 inline-flex rounded-lg bg-[#17579B] px-4 py-2 text-sm font-semibold text-white hover:opacity-90">
+            Xem tất cả sản phẩm
+          </Link>
         </div>
       ) : (
         <div className="space-y-10">
