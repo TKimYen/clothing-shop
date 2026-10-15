@@ -59,6 +59,12 @@ export const mapCoupon = (row: Prisma.CouponModel): Coupon => ({
   startsAt: row.startsAt.toISOString(),
   endsAt: row.endsAt.toISOString(),
   isActive: row.isActive,
+  scope: row.scope,
+  requiredPaymentMethod:
+    row.requiredPaymentMethod === "COD" ||
+    row.requiredPaymentMethod === "BANK_TRANSFER"
+      ? row.requiredPaymentMethod
+      : null,
 });
 
 /* --------------------------------- Product -------------------------------- */

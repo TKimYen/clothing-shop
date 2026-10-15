@@ -22,6 +22,8 @@ export const couponFormSchema = z
     startsAt: requiredDateTime("Start date"),
     endsAt: requiredDateTime("End date"),
     isActive: z.boolean(),
+    scope: z.enum(["PRODUCT", "SHIPPING"]),
+    requiredPaymentMethod: z.enum(["COD", "BANK_TRANSFER"]).nullable(),
     /** Present in the payload so the form can display it, never sent onward. */
     usedCount: integerString("Used count", 0, 1_000_000),
   })
@@ -69,6 +71,8 @@ export function toCouponInput(values: CouponFormOutput): CouponInput {
     startsAt: values.startsAt,
     endsAt: values.endsAt,
     isActive: values.isActive,
+    scope: values.scope,
+    requiredPaymentMethod: values.requiredPaymentMethod,
   };
 }
 
@@ -87,6 +91,8 @@ export function toCouponFormDefaultValues(coupon: Coupon | null): CouponFormValu
     startsAt: coupon ? coupon.startsAt.slice(0, 16) : "",
     endsAt: coupon ? coupon.endsAt.slice(0, 16) : "",
     isActive: coupon?.isActive ?? true,
+    scope: coupon?.scope ?? "PRODUCT",
+    requiredPaymentMethod: coupon?.requiredPaymentMethod ?? null,
     usedCount: coupon ? String(coupon.usedCount) : "0",
   };
 }

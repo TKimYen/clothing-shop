@@ -62,6 +62,8 @@ export const collectionInput = z.object({
     .transform((value) => (value ? value : null)),
   startsAt: optionalDate("Start date"),
   isActive: z.boolean(),
+  scope: z.enum(["PRODUCT", "SHIPPING"]),
+  requiredPaymentMethod: z.enum(["COD", "BANK_TRANSFER"]).nullable(),
 });
 
 export const sizeInput = z.object({
@@ -185,6 +187,11 @@ export const productInput = z
 
 export const orderStatusInput = z.object({
   status: z.enum(["PENDING", "CONFIRMED", "SHIPPING", "DELIVERED", "CANCELLED"]),
+});
+
+export const paymentStatusInput = z.object({
+  status: z.enum(["PAID", "UNPAID"]),
+  transactionId: z.string().trim().max(200).optional().default(""),
 });
 
 export const roleInput = z.object({

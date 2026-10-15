@@ -24,6 +24,12 @@ export const orderService = {
   updateStatus: (id: string, status: OrderStatus) =>
     api.patch<Order>(`${BASE}/${encodeURIComponent(id)}/status`, { status }),
 
+  updatePaymentStatus: (id: string, status: "PAID" | "UNPAID", transactionId = "") =>
+    api.patch<Order>(`${BASE}/${encodeURIComponent(id)}/payment`, {
+      status,
+      transactionId,
+    }),
+
   /** Order history for the user detail page. */
   listByUser: (userId: string, params: ListParams = {}) =>
     orderService.list({ ...params, filters: { ...params.filters, userId } }),

@@ -12,6 +12,114 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { bankTransferInfo, hasBankTransferInfo } from "@/src/lib/payment-config";
+
+type CouponOption = {
+  id: string;
+  code: string;
+  description: string | null;
+  scope: "PRODUCT" | "SHIPPING";
+  discount: number;
+  eligible: boolean;
+  reason: string | null;
+  remainingAmount: number;
+};
+
+async function readJsonResponse(response: Response) {
+  const body = await response.text();
+  if (!body) {
+    throw new Error("Máy chủ không trả về dữ liệu coupon");
+  }
+  try {
+    return JSON.parse(body);
+  } catch {
+    throw new Error("Phản hồi từ máy chủ coupon không hợp lệ");
+  }
+}
+
+function CouponList({
+  options,
+  selectedCode,
+  onSelect,
+}: {
+  options: CouponOption[];
+  selectedCode: string;
+  onSelect: (code: string) => void;
+}) {
+  if (options.length === 0) return null;
+  const sortedOptions = [...options].sort((a, b) => b.discount - a.discount);
+  const selectedCodeNormalized = selectedCode.trim().toUpperCase();
+
+  return (
+    <div className="space-y-1 pt-1">
+      {sortedOptions.map((coupon) => {
+        const isSelected =
+          selectedCodeNormalized === coupon.code.toUpperCase();
+
+        return (
+          <button
+            key={coupon.id}
+            type="button"
+            disabled={!coupon.eligible}
+            onClick={() => onSelect(coupon.code)}
+            className={`w-full text-left rounded-lg border px-2.5 py-2 text-[11px] ${
+              coupon.eligible
+                ? isSelected
+                  ? "border-[#164F8D] bg-blue-50"
+                  : "border-gray-200 hover:border-[#164F8D]"
+                : "border-gray-200 bg-gray-50 text-gray-600 cursor-not-allowed"
+            }`}
+          >
+            <div className="flex items-start gap-2">
+              <span
+                aria-hidden="true"
+                className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border text-[10px] font-bold ${
+                  isSelected
+                    ? "border-[#164F8D] bg-[#164F8D] text-white"
+                    : "border-gray-400 bg-white text-transparent"
+                }`}
+              >
+                ✓
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="flex justify-between gap-2">
+                  <span
+                    className={`font-semibold ${
+                      coupon.eligible ? "text-gray-800" : "text-gray-600"
+                    }`}
+                  >
+                    {coupon.code}
+                  </span>
+                  {coupon.eligible && (
+                    <span className="shrink-0 text-green-600">
+                      Giảm {coupon.discount.toLocaleString("vi-VN")}đ
+                    </span>
+                  )}
+                </div>
+                {coupon.description && (
+                  <p
+                    className={`mt-0.5 ${
+                      coupon.eligible ? "text-gray-600" : "text-gray-500"
+                    }`}
+                  >
+                    {coupon.description}
+                  </p>
+                )}
+                {!coupon.eligible && (
+                  <span className="text-gray-600">
+                    {coupon.remainingAmount > 0
+                      ? `Mua thêm ${coupon.remainingAmount.toLocaleString("vi-VN")}đ để dùng`
+                      : coupon.reason}
+                  </span>
+                )}
+              </div>
+            </div>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 type Address = {
   id: string;
@@ -39,6 +147,7 @@ type CartItem = {
       salePrice?: number | null;
       images: { url: string }[];
     };
+
     color: { name: string };
     size: { label: string };
   };
@@ -60,9 +169,12 @@ export default function CheckoutPage() {
   // Voucher state riêng biệt
   const [productCoupon, setProductCoupon] = useState("");
   const [productDiscount, setProductDiscount] = useState(0);
+  const [appliedProductCoupon, setAppliedProductCoupon] = useState("");
 
   const [shipCoupon, setShipCoupon] = useState("");
   const [shipDiscount, setShipDiscount] = useState(0);
+  const [appliedShipCoupon, setAppliedShipCoupon] = useState("");
+  const [couponOptions, setCouponOptions] = useState<CouponOption[]>([]);
 
   async function fetchData() {
     try {
@@ -118,22 +230,100 @@ export default function CheckoutPage() {
     0,
     subtotal + finalShippingFee - productDiscount,
   );
+  const couponPaymentMethod = paymentType === "ONLINE" ? "BANK_TRANSFER" : "COD";
 
-  function handleApplyProductCoupon() {
-    if (productCoupon.toUpperCase() === "GIAM10K") {
-      setProductDiscount(10000);
-      alert("Đã áp dụng mã giảm giá sản phẩm thành công!");
-    } else {
-      alert("Mã giảm giá sản phẩm không hợp lệ");
+  useEffect(() => {
+    if (subtotal <= 0) return;
+    const params = new URLSearchParams({
+      scope: "PRODUCT",
+      subtotal: String(subtotal),
+      shippingFee: String(originalShippingFee),
+      paymentMethod: couponPaymentMethod,
+    });
+    const shippingParams = new URLSearchParams(params);
+    shippingParams.set("scope", "SHIPPING");
+    Promise.all([
+      fetch(`/api/coupons/available?${params}`).then(readJsonResponse),
+      fetch(`/api/coupons/available?${shippingParams}`).then(readJsonResponse),
+    ])
+      .then(([productResult, shippingResult]) => {
+        const productCoupons = productResult.success && Array.isArray(productResult.data)
+          ? productResult.data
+          : [];
+        const shippingCoupons = shippingResult.success && Array.isArray(shippingResult.data)
+          ? shippingResult.data
+          : [];
+        setCouponOptions([...productCoupons, ...shippingCoupons]);
+      })
+      .catch((error) => console.error("Lỗi tải danh sách coupon:", error));
+  }, [subtotal, originalShippingFee, couponPaymentMethod]);
+
+  const productOptions = couponOptions.filter((coupon) => coupon.scope === "PRODUCT");
+  const shippingOptions = couponOptions.filter((coupon) => coupon.scope === "SHIPPING");
+  const couponConflict =
+    productCoupon.trim() !== "" &&
+    shipCoupon.trim() !== "" &&
+    productCoupon.trim().toUpperCase() === shipCoupon.trim().toUpperCase();
+
+  function ensureCouponIsNotDuplicated(code: string, otherCode: string) {
+    if (code.trim().toUpperCase() === otherCode.trim().toUpperCase() && code.trim()) {
+      throw new Error("Không thể dùng cùng một mã cho giảm giá sản phẩm và vận chuyển");
     }
   }
 
-  function handleApplyShipCoupon() {
-    if (shipCoupon.toUpperCase() === "FREESHIP") {
-      setShipDiscount(30000);
-      alert("Đã áp dụng mã miễn phí vận chuyển thành công!");
-    } else {
-      alert("Mã vận chuyển không hợp lệ");
+  async function handleApplyProductCoupon() {
+    try {
+      ensureCouponIsNotDuplicated(productCoupon, appliedShipCoupon);
+      const res = await fetch("/api/coupons/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          code: productCoupon,
+          scope: "PRODUCT",
+          subtotal,
+          shippingFee: originalShippingFee,
+          paymentMethod: couponPaymentMethod,
+        }),
+      });
+      const result = await res.json();
+      if (!res.ok || !result.success) {
+        throw new Error(result.error?.message ?? "Mã giảm giá không hợp lệ");
+      }
+      setProductDiscount(Number(result.data.discount));
+      setAppliedProductCoupon(result.data.code);
+      alert(`Đã giảm ${Number(result.data.discount).toLocaleString("vi-VN")}đ`);
+    } catch (error) {
+      setProductDiscount(0);
+      setAppliedProductCoupon("");
+      alert(error instanceof Error ? error.message : "Mã giảm giá không hợp lệ");
+    }
+  }
+
+  async function handleApplyShipCoupon() {
+    try {
+      ensureCouponIsNotDuplicated(shipCoupon, appliedProductCoupon);
+      const res = await fetch("/api/coupons/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          code: shipCoupon,
+          scope: "SHIPPING",
+          subtotal,
+          shippingFee: originalShippingFee,
+          paymentMethod: couponPaymentMethod,
+        }),
+      });
+      const result = await res.json();
+      if (!res.ok || !result.success) {
+        throw new Error(result.error?.message ?? "Mã vận chuyển không hợp lệ");
+      }
+      setShipDiscount(Number(result.data.discount));
+      setAppliedShipCoupon(result.data.code);
+      alert(`Đã giảm ${Number(result.data.discount).toLocaleString("vi-VN")}đ phí vận chuyển`);
+    } catch (error) {
+      setShipDiscount(0);
+      setAppliedShipCoupon("");
+      alert(error instanceof Error ? error.message : "Mã vận chuyển không hợp lệ");
     }
   }
 
@@ -147,13 +337,6 @@ export default function CheckoutPage() {
       alert("Vui lòng chọn địa chỉ nhận hàng");
       return;
     }
-    if (paymentType === "ONLINE" && !selectedPaymentId) {
-      alert(
-        "Vui lòng chọn tài khoản ngân hàng hoặc ví điện tử để thanh toán online",
-      );
-      return;
-    }
-
     try {
       setIsSubmitting(true);
       const res = await fetch("/api/orders", {
@@ -162,9 +345,8 @@ export default function CheckoutPage() {
         body: JSON.stringify({
           addressId: selectedAddressId,
           paymentMethod: paymentType === "COD" ? "COD" : "BANK_TRANSFER",
-          paymentMethodId: selectedPaymentId,
-          productDiscount,
-          shipDiscount,
+          productCouponCode: appliedProductCoupon,
+          shippingCouponCode: appliedShipCoupon,
         }),
       });
 
@@ -364,38 +546,71 @@ export default function CheckoutPage() {
 
                 {paymentType === "ONLINE" && (
                   <div className="mt-3 pl-6 space-y-2 border-t pt-3 border-gray-200">
-                    {payments.length === 0 ? (
-                      <div className="text-xs text-red-500">
-                        Bạn chưa liên kết tài khoản ngân hàng hoặc ví nào.{" "}
-                        <a
-                          href="/account/paymentmethods"
-                          className="underline font-semibold"
-                        >
-                          Liên kết ngay
-                        </a>
-                      </div>
-                    ) : (
-                      payments.map((p) => (
-                        <label
-                          key={p.id}
-                          className={`flex items-center justify-between p-2 rounded border cursor-pointer bg-white ${selectedPaymentId === p.id ? "border-[#164F8D] ring-1 ring-[#164F8D]" : "border-gray-200"}`}
-                        >
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="radio"
-                              name="selectedPayment"
-                              checked={selectedPaymentId === p.id}
-                              onChange={() => setSelectedPaymentId(p.id)}
-                            />
-                            <span className="font-bold text-gray-800">
-                              {p.provider}
+                    <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-xs text-gray-700">
+                      <p className="font-semibold text-[#164F8D]">
+                        Thông tin chuyển khoản
+                      </p>
+                      {hasBankTransferInfo ? (
+                        <div className="mt-2 space-y-1">
+                          <p>
+                            Ngân hàng:{" "}
+                            <span className="font-semibold">
+                              {bankTransferInfo.bankName || "Chưa cấu hình"}
                             </span>
-                          </div>
-                          <span className="font-mono text-gray-500">
-                            •••• {p.accountNumber.slice(-4)}
-                          </span>
-                        </label>
-                      ))
+                          </p>
+                          <p>
+                            Số tài khoản:{" "}
+                            <span className="font-semibold">
+                              {bankTransferInfo.accountNumber || "Chưa cấu hình"}
+                            </span>
+                          </p>
+                          <p>
+                            Chủ tài khoản:{" "}
+                            <span className="font-semibold">
+                              {bankTransferInfo.accountName || "Chưa cấu hình"}
+                            </span>
+                          </p>
+                          {bankTransferInfo.branch ? (
+                            <p>Chi nhánh: {bankTransferInfo.branch}</p>
+                          ) : null}
+                          <p className="pt-1 text-gray-500">
+                            Nội dung: BlueWear + số điện thoại người nhận
+                          </p>
+                        </div>
+                      ) : (
+                        <p className="mt-1 text-amber-700">
+                          Thông tin chuyển khoản chưa được cấu hình. Vui lòng
+                          liên hệ cửa hàng trước khi thanh toán.
+                        </p>
+                      )}
+                    </div>
+                    {payments.length > 0 && (
+                      <div className="space-y-2">
+                        <p className="text-[11px] text-gray-500">
+                          Tài khoản đã liên kết (không bắt buộc):
+                        </p>
+                        {payments.map((p) => (
+                          <label
+                            key={p.id}
+                            className={`flex items-center justify-between p-2 rounded border cursor-pointer bg-white ${selectedPaymentId === p.id ? "border-[#164F8D] ring-1 ring-[#164F8D]" : "border-gray-200"}`}
+                          >
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="radio"
+                                name="selectedPayment"
+                                checked={selectedPaymentId === p.id}
+                                onChange={() => setSelectedPaymentId(p.id)}
+                              />
+                              <span className="font-bold text-gray-800">
+                                {p.provider}
+                              </span>
+                            </div>
+                            <span className="font-mono text-gray-500">
+                              •••• {p.accountNumber.slice(-4)}
+                            </span>
+                          </label>
+                        ))}
+                      </div>
                     )}
                   </div>
                 )}
@@ -420,19 +635,34 @@ export default function CheckoutPage() {
               <div className="flex gap-2">
                 <input
                   type="text"
-                  placeholder="Nhập mã (VD: GIAM10K)"
+                  placeholder="Nhập mã giảm giá sản phẩm"
                   value={productCoupon}
-                  onChange={(e) => setProductCoupon(e.target.value)}
+                  onChange={(e) => {
+                    setProductCoupon(e.target.value);
+                    setProductDiscount(0);
+                    setAppliedProductCoupon("");
+                  }}
                   className="w-full px-3 py-1.5 text-xs border border-gray-300 rounded-lg outline-none focus:border-[#164F8D]"
                 />
                 <button
                   type="button"
                   onClick={handleApplyProductCoupon}
+                  disabled={couponConflict}
                   className="bg-gray-800 text-white text-xs px-3 py-1.5 rounded-lg font-medium hover:bg-black cursor-pointer"
                 >
                   Áp dụng
                 </button>
               </div>
+              <CouponList
+                options={productOptions}
+                selectedCode={productCoupon}
+                onSelect={(code) => setProductCoupon(code)}
+              />
+              {couponConflict && (
+                <p className="text-[11px] text-red-600">
+                  Không thể dùng cùng một mã cho sản phẩm và vận chuyển.
+                </p>
+              )}
             </div>
 
             {/* Mã miễn phí vận chuyển */}
@@ -444,19 +674,29 @@ export default function CheckoutPage() {
               <div className="flex gap-2">
                 <input
                   type="text"
-                  placeholder="Nhập mã (VD: FREESHIP)"
+                  placeholder="Nhập mã miễn phí vận chuyển"
                   value={shipCoupon}
-                  onChange={(e) => setShipCoupon(e.target.value)}
+                  onChange={(e) => {
+                    setShipCoupon(e.target.value);
+                    setShipDiscount(0);
+                    setAppliedShipCoupon("");
+                  }}
                   className="w-full px-3 py-1.5 text-xs border border-gray-300 rounded-lg outline-none focus:border-[#164F8D]"
                 />
                 <button
                   type="button"
                   onClick={handleApplyShipCoupon}
+                  disabled={couponConflict}
                   className="bg-gray-800 text-white text-xs px-3 py-1.5 rounded-lg font-medium hover:bg-black cursor-pointer"
                 >
                   Áp dụng
                 </button>
               </div>
+              <CouponList
+                options={shippingOptions}
+                selectedCode={shipCoupon}
+                onSelect={(code) => setShipCoupon(code)}
+              />
             </div>
 
             {/* Tổng tiền đơn hàng */}

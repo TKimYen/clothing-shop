@@ -25,6 +25,7 @@ export function CouponFormDialog({
   const defaults = React.useMemo(() => toCouponFormDefaultValues(coupon), [coupon]);
   const form = useZodForm(couponFormSchema, defaults);
   const discountType = form.watch("discountType");
+  const scope = form.watch("scope");
 
   return (
     <FormDialog
@@ -70,6 +71,49 @@ export function CouponFormDialog({
             >
               <option value="PERCENT">Percentage</option>
               <option value="FIXED">Fixed amount</option>
+            </Select>
+          )}
+        </FormRow>
+
+        <FormRow name="scope" label="Applies to" error={form.formState.errors.scope?.message}>
+          {(props) => (
+            <Select
+              {...props}
+              value={scope}
+              onChange={(event) =>
+                form.setValue("scope", event.target.value as "PRODUCT" | "SHIPPING", {
+                  shouldDirty: true,
+                })
+              }
+            >
+              <option value="PRODUCT">Products</option>
+              <option value="SHIPPING">Shipping</option>
+            </Select>
+          )}
+        </FormRow>
+
+        <FormRow
+          name="requiredPaymentMethod"
+          label="Required payment method"
+          error={form.formState.errors.requiredPaymentMethod?.message}
+        >
+          {(props) => (
+            <Select
+              {...props}
+              value={form.watch("requiredPaymentMethod") ?? ""}
+              onChange={(event) =>
+                form.setValue(
+                  "requiredPaymentMethod",
+                  event.target.value === ""
+                    ? null
+                    : (event.target.value as "COD" | "BANK_TRANSFER"),
+                  { shouldDirty: true },
+                )
+              }
+            >
+              <option value="">Any method</option>
+              <option value="COD">Cash on delivery</option>
+              <option value="BANK_TRANSFER">Bank transfer</option>
             </Select>
           )}
         </FormRow>

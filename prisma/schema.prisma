@@ -54,6 +54,11 @@ enum PaymentStatus {
   REFUNDED
 }
 
+enum CouponScope {
+  PRODUCT
+  SHIPPING
+}
+
 // ============================================================
 //  NGUOI DUNG
 // ============================================================
@@ -69,11 +74,11 @@ model User {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
-  addresses    Address[]
-  cart         Cart?
-  orders       Order[]
-  stockImports StockImport[]
-  paymentMethods UserPaymentMethod[] 
+  addresses      Address[]
+  cart           Cart?
+  orders         Order[]
+  stockImports   StockImport[]
+  paymentMethods UserPaymentMethod[]
 
   @@map("users")
 }
@@ -270,10 +275,10 @@ model Cart {
 }
 
 model CartItem {
-  id        String @id @default(uuid())
-  cartId    String @map("cart_id")
-  variantId String @map("variant_id")
-  quantity  Int    @default(1)
+  id        String   @id @default(uuid())
+  cartId    String   @map("cart_id")
+  variantId String   @map("variant_id")
+  quantity  Int      @default(1)
   createdAt DateTime @default(now()) @map("created_at")
 
   cart    Cart           @relation(fields: [cartId], references: [id], onDelete: Cascade)
@@ -289,18 +294,20 @@ model CartItem {
 // ============================================================
 
 model Coupon {
-  id                String       @id @default(uuid())
-  code              String       @unique // "SALE20"
-  description       String?
-  discountType      DiscountType @map("discount_type")
-  discountValue     Decimal      @map("discount_value") @db.Decimal(12, 2)
-  minOrderAmount    Decimal      @default(0) @map("min_order_amount") @db.Decimal(12, 2)
-  maxDiscountAmount Decimal?     @map("max_discount_amount") @db.Decimal(12, 2) // tran giam cho loai PERCENT
-  maxUses           Int?         @map("max_uses") // NULL = khong gioi han
-  usedCount         Int          @default(0) @map("used_count")
-  startsAt          DateTime     @map("starts_at")
-  endsAt            DateTime     @map("ends_at")
-  isActive          Boolean      @default(true) @map("is_active")
+  id                    String         @id @default(uuid())
+  code                  String         @unique // "SALE20"
+  description           String?
+  discountType          DiscountType   @map("discount_type")
+  discountValue         Decimal        @map("discount_value") @db.Decimal(12, 2)
+  minOrderAmount        Decimal        @default(0) @map("min_order_amount") @db.Decimal(12, 2)
+  maxDiscountAmount     Decimal?       @map("max_discount_amount") @db.Decimal(12, 2) // tran giam cho loai PERCENT
+  maxUses               Int?           @map("max_uses") // NULL = khong gioi han
+  usedCount             Int            @default(0) @map("used_count")
+  startsAt              DateTime       @map("starts_at")
+  endsAt                DateTime       @map("ends_at")
+  isActive              Boolean        @default(true) @map("is_active")
+  scope                 CouponScope    @default(PRODUCT)
+  requiredPaymentMethod PaymentMethod? @map("required_payment_method")
 
   orders Order[]
 
@@ -381,14 +388,14 @@ model Payment {
 }
 
 model UserPaymentMethod {
-  id            String   @id @default(uuid())
-  userId        String   @map("user_id")
-  provider      String   // MOMO, VNPAY, VIETCOMBANK, v.v.
-  accountNumber String   @map("account_number") // Số tài khoản hoặc số thẻ
-  accountName   String   @map("account_name")   // Tên chủ tài khoản
-  isDefault     Boolean  @default(false) @map("is_default")
+  id            String  @id @default(uuid())
+  userId        String  @map("user_id")
+  provider      String // MOMO, VNPAY, VIETCOMBANK, v.v.
+  accountNumber String  @map("account_number") // Số tài khoản hoặc số thẻ
+  accountName   String  @map("account_name") // Tên chủ tài khoản
+  isDefault     Boolean @default(false) @map("is_default")
 
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@map("user_payment_methods")

@@ -2,6 +2,10 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/src/lib/db";
+import {
+  calculateCouponDiscount,
+  CouponValidationError,
+} from "@/src/lib/coupon";
 
 class OutOfStockError extends Error {}
 
@@ -69,9 +73,11 @@ export async function POST(request: Request) {
     const {
       addressId,
       paymentMethod = "COD",
-      productDiscount = 0,
-      shipDiscount = 0,
+      productCouponCode,
+      shippingCouponCode,
     } = body;
+    const couponPaymentMethod =
+      paymentMethod === "BANK_TRANSFER" ? "BANK_TRANSFER" : "COD";
 
     if (!addressId) {
       return NextResponse.json(
@@ -127,20 +133,109 @@ export async function POST(request: Request) {
 
     const originalShippingFee =
       subtotal >= 600000 || subtotal === 0 ? 0 : 30000;
+    let productCoupon: Awaited<
+      ReturnType<typeof calculateCouponDiscount>
+    > | null = null;
+    let shippingCoupon: Awaited<
+      ReturnType<typeof calculateCouponDiscount>
+    > | null = null;
+
+    if (typeof productCouponCode === "string" && productCouponCode.trim()) {
+      productCoupon = await calculateCouponDiscount(
+        prisma,
+        productCouponCode,
+        "PRODUCT",
+        subtotal,
+        originalShippingFee,
+        couponPaymentMethod,
+      );
+    }
+
+    if (typeof shippingCouponCode === "string" && shippingCouponCode.trim()) {
+      shippingCoupon = await calculateCouponDiscount(
+        prisma,
+        shippingCouponCode,
+        "SHIPPING",
+        subtotal,
+        originalShippingFee,
+        couponPaymentMethod,
+      );
+    }
+
+    if (
+      productCoupon &&
+      shippingCoupon &&
+      productCoupon.coupon.id === shippingCoupon.coupon.id
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: { message: "Không thể dùng cùng một mã cho hai loại ưu đãi" },
+        },
+        { status: 400 },
+      );
+    }
+
+    const productDiscount = productCoupon?.discount ?? 0;
+    const shipDiscount = shippingCoupon?.discount ?? 0;
     const finalShippingFee = Math.max(0, originalShippingFee - shipDiscount);
     const totalDiscount = productDiscount + shipDiscount;
     const totalAmount = Math.max(
       0,
-      subtotal + finalShippingFee - totalDiscount,
+      subtotal - productDiscount + finalShippingFee,
     );
+
+    if (totalAmount <= 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            message:
+              "Tổng đơn hàng phải lớn hơn 0đ. Vui lòng chọn mã giảm giá khác.",
+          },
+        },
+        { status: 400 },
+      );
+    }
+
+    if (paymentMethod !== "COD" && paymentMethod !== "BANK_TRANSFER") {
+      return NextResponse.json(
+        { success: false, error: { message: "Phương thức thanh toán không hợp lệ" } },
+        { status: 400 },
+      );
+    }
 
     const orderCode = "DH" + Date.now().toString().slice(-10);
 
     const order = await prisma.$transaction(async (tx) => {
+      for (const appliedCoupon of [productCoupon, shippingCoupon]) {
+        if (!appliedCoupon) continue;
+
+        const updatedCoupon = await tx.coupon.updateMany({
+          where: {
+            id: appliedCoupon.coupon.id,
+            isActive: true,
+            startsAt: { lte: new Date() },
+            endsAt: { gte: new Date() },
+            ...(appliedCoupon.coupon.maxUses === null
+              ? {}
+              : { usedCount: { lt: appliedCoupon.coupon.maxUses } }),
+          },
+          data: { usedCount: { increment: 1 } },
+        });
+
+        if (updatedCoupon.count === 0) {
+          throw new CouponValidationError(
+            `Mã ${appliedCoupon.coupon.code} vừa hết lượt sử dụng`,
+          );
+        }
+      }
+
       const newOrder = await tx.order.create({
         data: {
           orderCode,
           userId: user.id,
+          couponId: productCoupon?.coupon.id,
           recipientName: address.recipientName,
           recipientPhone: address.phone,
           shippingAddress: address.fullAddress,
@@ -204,7 +299,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: true, data: order });
   } catch (error) {
-    if (error instanceof OutOfStockError) {
+    if (error instanceof OutOfStockError || error instanceof CouponValidationError) {
       return NextResponse.json(
         { success: false, error: { message: error.message } },
         { status: 400 },

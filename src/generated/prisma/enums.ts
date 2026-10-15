@@ -62,3 +62,11 @@ export const PaymentStatus = {
 } as const
 
 export type PaymentStatus = (typeof PaymentStatus)[keyof typeof PaymentStatus]
+
+
+export const CouponScope = {
+  PRODUCT: 'PRODUCT',
+  SHIPPING: 'SHIPPING'
+} as const
+
+export type CouponScope = (typeof CouponScope)[keyof typeof CouponScope]

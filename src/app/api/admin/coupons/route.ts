@@ -29,13 +29,14 @@ const SORTS = [
  */
 export const GET = adminHandler(async (request) => {
   const query = parseListQuery(request, "code");
-  const { discountType, isActive } = query.filters;
+  const { discountType, isActive, scope } = query.filters;
 
   const where: Prisma.CouponWhereInput = {
     ...(query.search
       ? { OR: [{ code: insensitive(query.search) }, { description: insensitive(query.search) }] }
       : {}),
     ...(discountType === "PERCENT" || discountType === "FIXED" ? { discountType } : {}),
+    ...(scope === "PRODUCT" || scope === "SHIPPING" ? { scope } : {}),
     ...(boolFilter(isActive) !== undefined ? { isActive: boolFilter(isActive) } : {}),
   };
   const sort = pickSort(query.sort, SORTS, "code");

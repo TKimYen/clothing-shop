@@ -4,6 +4,7 @@
 import { useEffect, useState } from "react";
 import { ShoppingBag } from "lucide-react";
 import Link from "next/link";
+import { buildBankTransferQrUrl } from "@/src/lib/payment-config";
 
 type OrderItem = {
   id: string;
@@ -21,6 +22,10 @@ type Order = {
   totalAmount: number;
   createdAt: string;
   items: OrderItem[];
+  payment?: {
+    method: "COD" | "BANK_TRANSFER";
+    status: "UNPAID" | "PAID" | "FAILED" | "REFUNDED";
+  } | null;
 };
 
 const TABS = [
@@ -105,25 +110,42 @@ export default function OrdersPage() {
               key={order.id}
               className="bg-white rounded-xl border border-gray-200 p-5 shadow-xs"
             >
-              <div className="flex justify-between items-center pb-3 border-b border-gray-100 text-xs">
+              <div className="flex flex-wrap justify-between items-center gap-2 pb-3 border-b border-gray-100 text-xs">
                 <span className="font-bold text-gray-800">
                   Mã đơn: #{order.orderCode}
                 </span>
-                <span
-                  className={`px-2 py-1 rounded font-medium ${
-                    order.status === "DELIVERED"
-                      ? "bg-green-100 text-green-700"
-                      : order.status === "CANCELLED"
-                        ? "bg-red-100 text-red-700"
-                        : "bg-blue-100 text-[#164F8D]"
-                  }`}
-                >
-                  {order.status === "PENDING" && "Chờ xác nhận"}
-                  {order.status === "CONFIRMED" && "Chờ lấy hàng"}
-                  {order.status === "SHIPPING" && "Chờ giao hàng"}
-                  {order.status === "DELIVERED" && "Đã giao hàng"}
-                  {order.status === "CANCELLED" && "Đã hủy"}
-                </span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span
+                    className={`px-2 py-1 rounded font-medium ${
+                      order.status === "DELIVERED"
+                        ? "bg-green-100 text-green-700"
+                        : order.status === "CANCELLED"
+                          ? "bg-red-100 text-red-700"
+                          : "bg-blue-100 text-[#164F8D]"
+                    }`}
+                  >
+                    {order.status === "PENDING" && "Chờ xác nhận"}
+                    {order.status === "CONFIRMED" && "Chờ lấy hàng"}
+                    {order.status === "SHIPPING" && "Chờ giao hàng"}
+                    {order.status === "DELIVERED" && "Đã giao hàng"}
+                    {order.status === "CANCELLED" && "Đã hủy"}
+                  </span>
+                  <span
+                    className={`px-2 py-1 rounded font-medium ${
+                      order.payment?.status === "PAID"
+                        ? "bg-green-100 text-green-700"
+                        : order.payment?.status === "FAILED"
+                          ? "bg-red-100 text-red-700"
+                          : "bg-amber-100 text-amber-700"
+                    }`}
+                  >
+                    {order.payment?.status === "PAID"
+                      ? "Đã thanh toán"
+                      : order.payment?.status === "FAILED"
+                        ? "Thanh toán thất bại"
+                        : "Chưa thanh toán"}
+                  </span>
+                </div>
               </div>
 
               <div className="py-3 space-y-3">
@@ -164,6 +186,42 @@ export default function OrdersPage() {
                   )}
                 </div>
               </div>
+              {order.payment?.method === "BANK_TRANSFER" &&
+                order.payment.status === "UNPAID" &&
+                (() => {
+                  const qrUrl = buildBankTransferQrUrl(
+                    order.orderCode,
+                    Number(order.totalAmount),
+                  );
+                  if (!qrUrl) return null;
+
+                  return (
+                    <div className="mt-4 flex flex-col items-center gap-3 rounded-lg border border-blue-100 bg-blue-50/50 p-4 sm:flex-row sm:items-start">
+                      <img
+                        src={qrUrl}
+                        alt={`QR thanh toán đơn ${order.orderCode}`}
+                        className="h-48 w-48 rounded-lg bg-white p-2"
+                      />
+                      <div className="text-xs text-gray-700">
+                        <p className="font-semibold text-[#164F8D]">
+                          Quét QR để thanh toán chuyển khoản
+                        </p>
+                        <p className="mt-1">
+                          Số tiền:{" "}
+                          <strong>
+                            {Number(order.totalAmount).toLocaleString("vi-VN")}đ
+                          </strong>
+                        </p>
+                        <p className="mt-1">
+                          Nội dung: <strong>BlueWear {order.orderCode}</strong>
+                        </p>
+                        <p className="mt-2 text-gray-500">
+                          Đơn hàng sẽ được xác nhận sau khi cửa hàng kiểm tra giao dịch.
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })()}
             </div>
           ))}
         </div>

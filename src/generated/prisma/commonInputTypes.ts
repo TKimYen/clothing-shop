@@ -281,6 +281,20 @@ export type IntNullableFilter<$PrismaModel = never> = {
   not?: Prisma.NestedIntNullableFilter<$PrismaModel> | number | null
 }
 
+export type EnumCouponScopeFilter<$PrismaModel = never> = {
+  equals?: $Enums.CouponScope | Prisma.EnumCouponScopeFieldRefInput<$PrismaModel>
+  in?: $Enums.CouponScope[] | Prisma.ListEnumCouponScopeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.CouponScope[] | Prisma.ListEnumCouponScopeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumCouponScopeFilter<$PrismaModel> | $Enums.CouponScope
+}
+
+export type EnumPaymentMethodNullableFilter<$PrismaModel = never> = {
+  equals?: $Enums.PaymentMethod | Prisma.EnumPaymentMethodFieldRefInput<$PrismaModel> | null
+  in?: $Enums.PaymentMethod[] | Prisma.ListEnumPaymentMethodFieldRefInput<$PrismaModel> | null
+  notIn?: $Enums.PaymentMethod[] | Prisma.ListEnumPaymentMethodFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedEnumPaymentMethodNullableFilter<$PrismaModel> | $Enums.PaymentMethod | null
+}
+
 export type EnumDiscountTypeWithAggregatesFilter<$PrismaModel = never> = {
   equals?: $Enums.DiscountType | Prisma.EnumDiscountTypeFieldRefInput<$PrismaModel>
   in?: $Enums.DiscountType[] | Prisma.ListEnumDiscountTypeFieldRefInput<$PrismaModel>
@@ -305,6 +319,26 @@ export type IntNullableWithAggregatesFilter<$PrismaModel = never> = {
   _sum?: Prisma.NestedIntNullableFilter<$PrismaModel>
   _min?: Prisma.NestedIntNullableFilter<$PrismaModel>
   _max?: Prisma.NestedIntNullableFilter<$PrismaModel>
+}
+
+export type EnumCouponScopeWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.CouponScope | Prisma.EnumCouponScopeFieldRefInput<$PrismaModel>
+  in?: $Enums.CouponScope[] | Prisma.ListEnumCouponScopeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.CouponScope[] | Prisma.ListEnumCouponScopeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumCouponScopeWithAggregatesFilter<$PrismaModel> | $Enums.CouponScope
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumCouponScopeFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumCouponScopeFilter<$PrismaModel>
+}
+
+export type EnumPaymentMethodNullableWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.PaymentMethod | Prisma.EnumPaymentMethodFieldRefInput<$PrismaModel> | null
+  in?: $Enums.PaymentMethod[] | Prisma.ListEnumPaymentMethodFieldRefInput<$PrismaModel> | null
+  notIn?: $Enums.PaymentMethod[] | Prisma.ListEnumPaymentMethodFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedEnumPaymentMethodNullableWithAggregatesFilter<$PrismaModel> | $Enums.PaymentMethod | null
+  _count?: Prisma.NestedIntNullableFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumPaymentMethodNullableFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumPaymentMethodNullableFilter<$PrismaModel>
 }
 
 export type EnumOrderStatusFilter<$PrismaModel = never> = {
@@ -678,6 +712,20 @@ export type NestedEnumDiscountTypeFilter<$PrismaModel = never> = {
   not?: Prisma.NestedEnumDiscountTypeFilter<$PrismaModel> | $Enums.DiscountType
 }
 
+export type NestedEnumCouponScopeFilter<$PrismaModel = never> = {
+  equals?: $Enums.CouponScope | Prisma.EnumCouponScopeFieldRefInput<$PrismaModel>
+  in?: $Enums.CouponScope[] | Prisma.ListEnumCouponScopeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.CouponScope[] | Prisma.ListEnumCouponScopeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumCouponScopeFilter<$PrismaModel> | $Enums.CouponScope
+}
+
+export type NestedEnumPaymentMethodNullableFilter<$PrismaModel = never> = {
+  equals?: $Enums.PaymentMethod | Prisma.EnumPaymentMethodFieldRefInput<$PrismaModel> | null
+  in?: $Enums.PaymentMethod[] | Prisma.ListEnumPaymentMethodFieldRefInput<$PrismaModel> | null
+  notIn?: $Enums.PaymentMethod[] | Prisma.ListEnumPaymentMethodFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedEnumPaymentMethodNullableFilter<$PrismaModel> | $Enums.PaymentMethod | null
+}
+
 export type NestedEnumDiscountTypeWithAggregatesFilter<$PrismaModel = never> = {
   equals?: $Enums.DiscountType | Prisma.EnumDiscountTypeFieldRefInput<$PrismaModel>
   in?: $Enums.DiscountType[] | Prisma.ListEnumDiscountTypeFieldRefInput<$PrismaModel>
@@ -713,6 +761,26 @@ export type NestedFloatNullableFilter<$PrismaModel = never> = {
   gt?: number | Prisma.FloatFieldRefInput<$PrismaModel>
   gte?: number | Prisma.FloatFieldRefInput<$PrismaModel>
   not?: Prisma.NestedFloatNullableFilter<$PrismaModel> | number | null
+}
+
+export type NestedEnumCouponScopeWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.CouponScope | Prisma.EnumCouponScopeFieldRefInput<$PrismaModel>
+  in?: $Enums.CouponScope[] | Prisma.ListEnumCouponScopeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.CouponScope[] | Prisma.ListEnumCouponScopeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumCouponScopeWithAggregatesFilter<$PrismaModel> | $Enums.CouponScope
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumCouponScopeFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumCouponScopeFilter<$PrismaModel>
+}
+
+export type NestedEnumPaymentMethodNullableWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.PaymentMethod | Prisma.EnumPaymentMethodFieldRefInput<$PrismaModel> | null
+  in?: $Enums.PaymentMethod[] | Prisma.ListEnumPaymentMethodFieldRefInput<$PrismaModel> | null
+  notIn?: $Enums.PaymentMethod[] | Prisma.ListEnumPaymentMethodFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedEnumPaymentMethodNullableWithAggregatesFilter<$PrismaModel> | $Enums.PaymentMethod | null
+  _count?: Prisma.NestedIntNullableFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumPaymentMethodNullableFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumPaymentMethodNullableFilter<$PrismaModel>
 }
 
 export type NestedEnumOrderStatusFilter<$PrismaModel = never> = {

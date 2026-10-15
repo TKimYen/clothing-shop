@@ -234,6 +234,17 @@ export default function CouponsPage() {
               onChange={(value) => list.setFilter("discountType", value)}
             />
             <FilterSelect
+              id="filter-coupon-scope"
+              label="Applies to"
+              value={filters.scope ?? ""}
+              placeholder="Any scope"
+              options={[
+                { value: "PRODUCT", label: "Products" },
+                { value: "SHIPPING", label: "Shipping" },
+              ]}
+              onChange={(value) => list.setFilter("scope", value)}
+            />
+            <FilterSelect
               id="filter-coupon-active"
               label="Status"
               value={filters.isActive ?? ""}

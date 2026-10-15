@@ -253,7 +253,9 @@ export const CouponScalarFieldEnum = {
   usedCount: 'usedCount',
   startsAt: 'startsAt',
   endsAt: 'endsAt',
-  isActive: 'isActive'
+  isActive: 'isActive',
+  scope: 'scope',
+  requiredPaymentMethod: 'requiredPaymentMethod'
 } as const
 
 export type CouponScalarFieldEnum = (typeof CouponScalarFieldEnum)[keyof typeof CouponScalarFieldEnum]

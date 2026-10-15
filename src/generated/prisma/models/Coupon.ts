@@ -55,6 +55,8 @@ export type CouponMinAggregateOutputType = {
   startsAt: Date | null
   endsAt: Date | null
   isActive: boolean | null
+  scope: $Enums.CouponScope | null
+  requiredPaymentMethod: $Enums.PaymentMethod | null
 }
 
 export type CouponMaxAggregateOutputType = {
@@ -70,6 +72,8 @@ export type CouponMaxAggregateOutputType = {
   startsAt: Date | null
   endsAt: Date | null
   isActive: boolean | null
+  scope: $Enums.CouponScope | null
+  requiredPaymentMethod: $Enums.PaymentMethod | null
 }
 
 export type CouponCountAggregateOutputType = {
@@ -85,6 +89,8 @@ export type CouponCountAggregateOutputType = {
   startsAt: number
   endsAt: number
   isActive: number
+  scope: number
+  requiredPaymentMethod: number
   _all: number
 }
 
@@ -118,6 +124,8 @@ export type CouponMinAggregateInputType = {
   startsAt?: true
   endsAt?: true
   isActive?: true
+  scope?: true
+  requiredPaymentMethod?: true
 }
 
 export type CouponMaxAggregateInputType = {
@@ -133,6 +141,8 @@ export type CouponMaxAggregateInputType = {
   startsAt?: true
   endsAt?: true
   isActive?: true
+  scope?: true
+  requiredPaymentMethod?: true
 }
 
 export type CouponCountAggregateInputType = {
@@ -148,6 +158,8 @@ export type CouponCountAggregateInputType = {
   startsAt?: true
   endsAt?: true
   isActive?: true
+  scope?: true
+  requiredPaymentMethod?: true
   _all?: true
 }
 
@@ -250,6 +262,8 @@ export type CouponGroupByOutputType = {
   startsAt: Date
   endsAt: Date
   isActive: boolean
+  scope: $Enums.CouponScope
+  requiredPaymentMethod: $Enums.PaymentMethod | null
   _count: CouponCountAggregateOutputType | null
   _avg: CouponAvgAggregateOutputType | null
   _sum: CouponSumAggregateOutputType | null
@@ -288,6 +302,8 @@ export type CouponWhereInput = {
   startsAt?: Prisma.DateTimeFilter<"Coupon"> | Date | string
   endsAt?: Prisma.DateTimeFilter<"Coupon"> | Date | string
   isActive?: Prisma.BoolFilter<"Coupon"> | boolean
+  scope?: Prisma.EnumCouponScopeFilter<"Coupon"> | $Enums.CouponScope
+  requiredPaymentMethod?: Prisma.EnumPaymentMethodNullableFilter<"Coupon"> | $Enums.PaymentMethod | null
   orders?: Prisma.OrderListRelationFilter
 }
 
@@ -304,6 +320,8 @@ export type CouponOrderByWithRelationInput = {
   startsAt?: Prisma.SortOrder
   endsAt?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
+  scope?: Prisma.SortOrder
+  requiredPaymentMethod?: Prisma.SortOrderInput | Prisma.SortOrder
   orders?: Prisma.OrderOrderByRelationAggregateInput
 }
 
@@ -323,6 +341,8 @@ export type CouponWhereUniqueInput = Prisma.AtLeast<{
   startsAt?: Prisma.DateTimeFilter<"Coupon"> | Date | string
   endsAt?: Prisma.DateTimeFilter<"Coupon"> | Date | string
   isActive?: Prisma.BoolFilter<"Coupon"> | boolean
+  scope?: Prisma.EnumCouponScopeFilter<"Coupon"> | $Enums.CouponScope
+  requiredPaymentMethod?: Prisma.EnumPaymentMethodNullableFilter<"Coupon"> | $Enums.PaymentMethod | null
   orders?: Prisma.OrderListRelationFilter
 }, "id" | "code">
 
@@ -339,6 +359,8 @@ export type CouponOrderByWithAggregationInput = {
   startsAt?: Prisma.SortOrder
   endsAt?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
+  scope?: Prisma.SortOrder
+  requiredPaymentMethod?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.CouponCountOrderByAggregateInput
   _avg?: Prisma.CouponAvgOrderByAggregateInput
   _max?: Prisma.CouponMaxOrderByAggregateInput
@@ -362,6 +384,8 @@ export type CouponScalarWhereWithAggregatesInput = {
   startsAt?: Prisma.DateTimeWithAggregatesFilter<"Coupon"> | Date | string
   endsAt?: Prisma.DateTimeWithAggregatesFilter<"Coupon"> | Date | string
   isActive?: Prisma.BoolWithAggregatesFilter<"Coupon"> | boolean
+  scope?: Prisma.EnumCouponScopeWithAggregatesFilter<"Coupon"> | $Enums.CouponScope
+  requiredPaymentMethod?: Prisma.EnumPaymentMethodNullableWithAggregatesFilter<"Coupon"> | $Enums.PaymentMethod | null
 }
 
 export type CouponCreateInput = {
@@ -377,6 +401,8 @@ export type CouponCreateInput = {
   startsAt: Date | string
   endsAt: Date | string
   isActive?: boolean
+  scope?: $Enums.CouponScope
+  requiredPaymentMethod?: $Enums.PaymentMethod | null
   orders?: Prisma.OrderCreateNestedManyWithoutCouponInput
 }
 
@@ -393,6 +419,8 @@ export type CouponUncheckedCreateInput = {
   startsAt: Date | string
   endsAt: Date | string
   isActive?: boolean
+  scope?: $Enums.CouponScope
+  requiredPaymentMethod?: $Enums.PaymentMethod | null
   orders?: Prisma.OrderUncheckedCreateNestedManyWithoutCouponInput
 }
 
@@ -409,6 +437,8 @@ export type CouponUpdateInput = {
   startsAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   endsAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  scope?: Prisma.EnumCouponScopeFieldUpdateOperationsInput | $Enums.CouponScope
+  requiredPaymentMethod?: Prisma.NullableEnumPaymentMethodFieldUpdateOperationsInput | $Enums.PaymentMethod | null
   orders?: Prisma.OrderUpdateManyWithoutCouponNestedInput
 }
 
@@ -425,6 +455,8 @@ export type CouponUncheckedUpdateInput = {
   startsAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   endsAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  scope?: Prisma.EnumCouponScopeFieldUpdateOperationsInput | $Enums.CouponScope
+  requiredPaymentMethod?: Prisma.NullableEnumPaymentMethodFieldUpdateOperationsInput | $Enums.PaymentMethod | null
   orders?: Prisma.OrderUncheckedUpdateManyWithoutCouponNestedInput
 }
 
@@ -441,6 +473,8 @@ export type CouponCreateManyInput = {
   startsAt: Date | string
   endsAt: Date | string
   isActive?: boolean
+  scope?: $Enums.CouponScope
+  requiredPaymentMethod?: $Enums.PaymentMethod | null
 }
 
 export type CouponUpdateManyMutationInput = {
@@ -456,6 +490,8 @@ export type CouponUpdateManyMutationInput = {
   startsAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   endsAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  scope?: Prisma.EnumCouponScopeFieldUpdateOperationsInput | $Enums.CouponScope
+  requiredPaymentMethod?: Prisma.NullableEnumPaymentMethodFieldUpdateOperationsInput | $Enums.PaymentMethod | null
 }
 
 export type CouponUncheckedUpdateManyInput = {
@@ -471,6 +507,8 @@ export type CouponUncheckedUpdateManyInput = {
   startsAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   endsAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  scope?: Prisma.EnumCouponScopeFieldUpdateOperationsInput | $Enums.CouponScope
+  requiredPaymentMethod?: Prisma.NullableEnumPaymentMethodFieldUpdateOperationsInput | $Enums.PaymentMethod | null
 }
 
 export type CouponCountOrderByAggregateInput = {
@@ -486,6 +524,8 @@ export type CouponCountOrderByAggregateInput = {
   startsAt?: Prisma.SortOrder
   endsAt?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
+  scope?: Prisma.SortOrder
+  requiredPaymentMethod?: Prisma.SortOrder
 }
 
 export type CouponAvgOrderByAggregateInput = {
@@ -509,6 +549,8 @@ export type CouponMaxOrderByAggregateInput = {
   startsAt?: Prisma.SortOrder
   endsAt?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
+  scope?: Prisma.SortOrder
+  requiredPaymentMethod?: Prisma.SortOrder
 }
 
 export type CouponMinOrderByAggregateInput = {
@@ -524,6 +566,8 @@ export type CouponMinOrderByAggregateInput = {
   startsAt?: Prisma.SortOrder
   endsAt?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
+  scope?: Prisma.SortOrder
+  requiredPaymentMethod?: Prisma.SortOrder
 }
 
 export type CouponSumOrderByAggregateInput = {
@@ -549,6 +593,14 @@ export type NullableIntFieldUpdateOperationsInput = {
   decrement?: number
   multiply?: number
   divide?: number
+}
+
+export type EnumCouponScopeFieldUpdateOperationsInput = {
+  set?: $Enums.CouponScope
+}
+
+export type NullableEnumPaymentMethodFieldUpdateOperationsInput = {
+  set?: $Enums.PaymentMethod | null
 }
 
 export type CouponCreateNestedOneWithoutOrdersInput = {
@@ -580,6 +632,8 @@ export type CouponCreateWithoutOrdersInput = {
   startsAt: Date | string
   endsAt: Date | string
   isActive?: boolean
+  scope?: $Enums.CouponScope
+  requiredPaymentMethod?: $Enums.PaymentMethod | null
 }
 
 export type CouponUncheckedCreateWithoutOrdersInput = {
@@ -595,6 +649,8 @@ export type CouponUncheckedCreateWithoutOrdersInput = {
   startsAt: Date | string
   endsAt: Date | string
   isActive?: boolean
+  scope?: $Enums.CouponScope
+  requiredPaymentMethod?: $Enums.PaymentMethod | null
 }
 
 export type CouponCreateOrConnectWithoutOrdersInput = {
@@ -626,6 +682,8 @@ export type CouponUpdateWithoutOrdersInput = {
   startsAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   endsAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  scope?: Prisma.EnumCouponScopeFieldUpdateOperationsInput | $Enums.CouponScope
+  requiredPaymentMethod?: Prisma.NullableEnumPaymentMethodFieldUpdateOperationsInput | $Enums.PaymentMethod | null
 }
 
 export type CouponUncheckedUpdateWithoutOrdersInput = {
@@ -641,6 +699,8 @@ export type CouponUncheckedUpdateWithoutOrdersInput = {
   startsAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   endsAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  scope?: Prisma.EnumCouponScopeFieldUpdateOperationsInput | $Enums.CouponScope
+  requiredPaymentMethod?: Prisma.NullableEnumPaymentMethodFieldUpdateOperationsInput | $Enums.PaymentMethod | null
 }
 
 
@@ -687,6 +747,8 @@ export type CouponSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   startsAt?: boolean
   endsAt?: boolean
   isActive?: boolean
+  scope?: boolean
+  requiredPaymentMethod?: boolean
   orders?: boolean | Prisma.Coupon$ordersArgs<ExtArgs>
   _count?: boolean | Prisma.CouponCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["coupon"]>
@@ -704,6 +766,8 @@ export type CouponSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extens
   startsAt?: boolean
   endsAt?: boolean
   isActive?: boolean
+  scope?: boolean
+  requiredPaymentMethod?: boolean
 }, ExtArgs["result"]["coupon"]>
 
 export type CouponSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -719,6 +783,8 @@ export type CouponSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extens
   startsAt?: boolean
   endsAt?: boolean
   isActive?: boolean
+  scope?: boolean
+  requiredPaymentMethod?: boolean
 }, ExtArgs["result"]["coupon"]>
 
 export type CouponSelectScalar = {
@@ -734,9 +800,11 @@ export type CouponSelectScalar = {
   startsAt?: boolean
   endsAt?: boolean
   isActive?: boolean
+  scope?: boolean
+  requiredPaymentMethod?: boolean
 }
 
-export type CouponOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "code" | "description" | "discountType" | "discountValue" | "minOrderAmount" | "maxDiscountAmount" | "maxUses" | "usedCount" | "startsAt" | "endsAt" | "isActive", ExtArgs["result"]["coupon"]>
+export type CouponOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "code" | "description" | "discountType" | "discountValue" | "minOrderAmount" | "maxDiscountAmount" | "maxUses" | "usedCount" | "startsAt" | "endsAt" | "isActive" | "scope" | "requiredPaymentMethod", ExtArgs["result"]["coupon"]>
 export type CouponInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   orders?: boolean | Prisma.Coupon$ordersArgs<ExtArgs>
   _count?: boolean | Prisma.CouponCountOutputTypeDefaultArgs<ExtArgs>
@@ -762,6 +830,8 @@ export type $CouponPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs
     startsAt: Date
     endsAt: Date
     isActive: boolean
+    scope: $Enums.CouponScope
+    requiredPaymentMethod: $Enums.PaymentMethod | null
   }, ExtArgs["result"]["coupon"]>
   composites: {}
 }
@@ -1198,6 +1268,8 @@ export interface CouponFieldRefs {
   readonly startsAt: Prisma.FieldRef<"Coupon", 'DateTime'>
   readonly endsAt: Prisma.FieldRef<"Coupon", 'DateTime'>
   readonly isActive: Prisma.FieldRef<"Coupon", 'Boolean'>
+  readonly scope: Prisma.FieldRef<"Coupon", 'CouponScope'>
+  readonly requiredPaymentMethod: Prisma.FieldRef<"Coupon", 'PaymentMethod'>
 }
     
 

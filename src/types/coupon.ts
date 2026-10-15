@@ -1,4 +1,6 @@
 export type DiscountType = "PERCENT" | "FIXED";
+export type CouponScope = "PRODUCT" | "SHIPPING";
+export type CouponPaymentMethod = "COD" | "BANK_TRANSFER";
 
 export type Coupon = {
   id: string;
@@ -15,6 +17,8 @@ export type Coupon = {
   startsAt: string;
   endsAt: string;
   isActive: boolean;
+  scope: CouponScope;
+  requiredPaymentMethod: CouponPaymentMethod | null;
 };
 
 /** `usedCount` is intentionally absent: it is read-only. */

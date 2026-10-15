@@ -22,6 +22,7 @@ import {
 } from "@/src/components/ui";
 import { PageHeader } from "@/src/components/admin/layout";
 import { OrderStatusSelect } from "@/src/components/admin/order-status-select";
+import { PaymentStatusControl } from "@/src/components/admin/payment-status-control";
 import { orderService } from "@/src/lib/services";
 import { humanizeEnum } from "@/src/lib/utils";
 import { computeOrderTotal, formatCurrency, formatDateTime } from "@/src/lib/utils";
@@ -175,6 +176,7 @@ function OrderDetail({ order }: { order: Order }) {
                   },
                 ]}
               />
+              <PaymentStatusControl order={order} />
             </div>
           </CardBody>
         </Card>
