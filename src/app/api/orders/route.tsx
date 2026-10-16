@@ -5,7 +5,7 @@ import { prisma } from "@/src/lib/db";
 
 class OutOfStockError extends Error {}
 
-// 1. Lấy danh sách đơn hàng của user hiện tại
+// 1. Lấy danh sách đơn hàng (tự động hủy & hoàn kho nếu quá 24h chưa thanh toán)
 export async function GET() {
   try {
     const { userId: clerkId } = await auth();
@@ -24,7 +24,7 @@ export async function GET() {
       return NextResponse.json({ success: true, data: [] });
     }
 
-    const orders = await prisma.order.findMany({
+    let orders = await prisma.order.findMany({
       where: { userId: user.id },
       include: {
         items: true,
@@ -32,6 +32,39 @@ export async function GET() {
       },
       orderBy: { createdAt: "desc" },
     });
+
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+    // Kiểm tra tự động hủy đơn quá 24h chưa thanh toán
+    for (let i = 0; i < orders.length; i++) {
+      const order = orders[i];
+      if (
+        order.status === "PENDING" &&
+        order.payment?.status === "UNPAID" &&
+        new Date(order.createdAt) < twentyFourHoursAgo
+      ) {
+        orders[i] = await prisma.$transaction(async (tx) => {
+          const cancelledOrder = await tx.order.update({
+            where: { id: order.id },
+            data: { status: "CANCELLED" },
+            include: { items: true, payment: true },
+          });
+
+          for (const item of cancelledOrder.items) {
+            await tx.productVariant.update({
+              where: { id: item.variantId },
+              data: {
+                stockQuantity: {
+                  increment: item.quantity,
+                },
+              },
+            });
+          }
+
+          return cancelledOrder;
+        });
+      }
+    }
 
     return NextResponse.json({ success: true, data: orders });
   } catch (error) {
@@ -71,6 +104,7 @@ export async function POST(request: Request) {
       paymentMethod = "COD",
       productDiscount = 0,
       shipDiscount = 0,
+      note,
     } = body;
 
     if (!addressId) {
@@ -149,14 +183,14 @@ export async function POST(request: Request) {
           discountAmount: totalDiscount,
           totalAmount,
           status: "PENDING",
+          note: note || null,
         },
       });
 
       for (const item of cart.items) {
         const price =
           item.variant.product.salePrice ?? item.variant.product.price;
-        // Trừ kho có điều kiện: chỉ trừ khi còn đủ hàng.
-        // Kiểm tra và trừ cùng lúc nên 2 người mua đồng thời cũng không thể làm kho bị âm.
+        
         const updated = await tx.productVariant.updateMany({
           where: {
             id: item.variantId,
@@ -168,11 +202,11 @@ export async function POST(request: Request) {
         });
 
         if (updated.count === 0) {
-          // Không đủ hàng → throw để rollback toàn bộ đơn
           throw new OutOfStockError(
             `"${item.variant.product.name}" (${item.variant.color?.name} / ${item.variant.size?.label}) không đủ hàng`,
           );
         }
+
         await tx.orderItem.create({
           data: {
             orderId: newOrder.id,
@@ -186,10 +220,16 @@ export async function POST(request: Request) {
         });
       }
 
+      let mappedMethod: "COD" | "BANK_TRANSFER" | "VNPAY" | "MOMO" = "COD";
+      if (paymentMethod === "BANK_TRANSFER") mappedMethod = "BANK_TRANSFER";
+      else if (paymentMethod === "MOMO") mappedMethod = "MOMO";
+      else if (paymentMethod === "VNPAY") mappedMethod = "VNPAY";
+      else if (paymentMethod === "VISA" || paymentMethod === "MASTERCARD") mappedMethod = "BANK_TRANSFER";
+
       await tx.payment.create({
         data: {
           orderId: newOrder.id,
-          method: paymentMethod === "BANK_TRANSFER" ? "BANK_TRANSFER" : "COD",
+          method: mappedMethod,
           status: "UNPAID",
           amount: totalAmount,
         },

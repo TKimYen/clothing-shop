@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ShoppingBag } from "lucide-react";
+import { ShoppingBag, Eye, XCircle, Loader2 } from "lucide-react";
 import Link from "next/link";
 
 type OrderItem = {
@@ -36,6 +36,7 @@ export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [activeTab, setActiveTab] = useState("ALL");
   const [loading, setLoading] = useState(true);
+  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
 
   async function fetchOrders() {
     try {
@@ -54,6 +55,31 @@ export default function OrdersPage() {
       console.error("Lỗi tải danh sách đơn hàng:", error),
     );
   }, []);
+
+  // Hàm xử lý hủy đơn hàng trực tiếp từ danh sách kèm hoàn kho
+  async function handleCancelOrder(orderId: string) {
+    if (!confirm("Bạn có chắc chắn muốn hủy đơn hàng này không?")) return;
+
+    try {
+      setActionLoadingId(orderId);
+      const res = await fetch(`/api/orders/${orderId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "CANCELLED" }),
+      });
+      const result = await res.json();
+      if (result.success) {
+        alert("Hủy đơn hàng thành công!");
+        fetchOrders(); // Tải lại danh sách sau khi hủy và hoàn kho
+      } else {
+        alert(result.error?.message || "Không thể hủy đơn hàng");
+      }
+    } catch (error) {
+      console.error("Lỗi hủy đơn hàng:", error);
+    } finally {
+      setActionLoadingId(null);
+    }
+  }
   
   const filteredOrders =
     activeTab === "ALL" ? orders : orders.filter((o) => o.status === activeTab);
@@ -148,20 +174,44 @@ export default function OrdersPage() {
                 ))}
               </div>
 
-              <div className="pt-3 border-t border-gray-100 flex justify-between items-center">
+              <div className="pt-3 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                 <span className="text-xs text-gray-500">
                   Ngày đặt:{" "}
                   {new Date(order.createdAt).toLocaleDateString("vi-VN")}
                 </span>
-                <div className="flex items-center gap-3">
+
+                <div className="flex flex-wrap items-center justify-between w-full sm:w-auto gap-3">
                   <span className="text-sm font-bold text-[#164F8D]">
                     Tổng tiền: {Number(order.totalAmount).toLocaleString()}đ
                   </span>
-                  {order.status === "DELIVERED" && (
-                    <button className="bg-[#164F8D] text-white text-xs px-3 py-1.5 rounded-lg font-medium hover:bg-[#123d6d] cursor-pointer">
-                      Đánh giá
-                    </button>
-                  )}
+
+                  <div className="flex items-center gap-2">
+                    {/* Nút Hủy đơn hàng (Chỉ hiện khi trạng thái là PENDING) */}
+                    {order.status === "PENDING" && (
+                      <button
+                        onClick={() => handleCancelOrder(order.id)}
+                        disabled={actionLoadingId === order.id}
+                        className="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-xs px-3 py-1.5 rounded-lg font-semibold transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-1"
+                      >
+                        {actionLoadingId === order.id && <Loader2 size={12} className="animate-spin" />}
+                        <XCircle size={14} /> Hủy đơn
+                      </button>
+                    )}
+
+                    {/* Nút Xem chi tiết trỏ sang trang /orders/[id] */}
+                    <Link
+                      href={`/orders/${order.id}`}
+                      className="bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs px-3 py-1.5 rounded-lg font-medium transition-colors flex items-center gap-1"
+                    >
+                      <Eye size={14} /> Chi tiết
+                    </Link>
+
+                    {order.status === "DELIVERED" && (
+                      <button className="bg-[#164F8D] text-white text-xs px-3 py-1.5 rounded-lg font-medium hover:bg-[#123d6d] cursor-pointer">
+                        Đánh giá
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
