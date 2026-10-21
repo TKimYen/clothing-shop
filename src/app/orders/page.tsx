@@ -59,7 +59,7 @@ export default function OrdersPage() {
     activeTab === "ALL" ? orders : orders.filter((o) => o.status === activeTab);
 
   return (
-    <main className="container mx-auto px-4 py-8 max-w-4xl">
+    <div className="container mx-auto px-4 py-8 max-w-4xl">
       <h1 className="text-2xl font-bold text-[#164F8D] mb-6">
         Đơn hàng của tôi
       </h1>
@@ -168,6 +168,6 @@ export default function OrdersPage() {
           ))}
         </div>
       )}
-    </main>
+    </div>
   );
 }

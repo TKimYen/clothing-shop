@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import Image from 'next/image';
 
 type CollectionItem = {
   id: string;
@@ -147,9 +148,12 @@ export default function CollectionsPage() {
               }`}
             >
               <div className="w-full md:w-2/5 rounded-xl overflow-hidden aspect-[4/3] bg-gray-100 relative group">
-                <img
+                <Image
                   src={item.bannerUrl ?? '/images/banner.png'}
                   alt={item.name}
+                  fill
+                  sizes="(max-width: 768px) 100vw, 40vw"
+                  unoptimized
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 />
                 <span className="absolute top-3 left-3 bg-[#17579B] text-white text-[11px] px-2.5 py-0.5 rounded-full font-medium shadow">

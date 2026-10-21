@@ -68,13 +68,24 @@ export async function GET(request: Request) {
       throw new Error(`sort must be one of: ${SORT_VALUES.join(", ")}`);
     }
 
-    const priceFilter =
+    const priceRange =
       minPrice !== undefined || maxPrice !== undefined
         ? {
             ...(minPrice !== undefined ? { gte: minPrice } : {}),
             ...(maxPrice !== undefined ? { lte: maxPrice } : {}),
           }
         : undefined;
+
+    // The storefront displays salePrice when present, so a price filter must
+    // use that same effective price rather than the catalogue price only.
+    const effectivePriceFilter = priceRange
+      ? {
+          OR: [
+            { salePrice: { not: null, ...priceRange } },
+            { salePrice: null, price: priceRange },
+          ],
+        }
+      : {};
 
     const where = {
       isActive: true,
@@ -91,7 +102,7 @@ export async function GET(request: Request) {
             ],
           }
         : {}),
-      ...(priceFilter ? { price: priceFilter } : {}),
+      ...effectivePriceFilter,
       ...(category
         ? {
             category: {
@@ -117,12 +128,17 @@ export async function GET(request: Request) {
             ? { name: "asc" as const }
             : { createdAt: "desc" as const };
 
-    const [products, total] = await Promise.all([
+    const shouldSortByEffectivePrice = sort === "price_asc" || sort === "price_desc";
+    const [allProducts, total] = await Promise.all([
       prisma.product.findMany({
         where,
-        orderBy,
-        skip: (page - 1) * requestedLimit,
-        take: requestedLimit,
+        orderBy: shouldSortByEffectivePrice ? { createdAt: "desc" } : orderBy,
+        ...(shouldSortByEffectivePrice
+          ? {}
+          : {
+              skip: (page - 1) * requestedLimit,
+              take: requestedLimit,
+            }),
         select: {
           id: true,
           name: true,
@@ -152,6 +168,17 @@ export async function GET(request: Request) {
       }),
       prisma.product.count({ where }),
     ]);
+
+    const sortedProducts = shouldSortByEffectivePrice
+      ? [...allProducts].sort((a, b) => {
+          const aPrice = Number(a.salePrice ?? a.price);
+          const bPrice = Number(b.salePrice ?? b.price);
+          return sort === "price_asc" ? aPrice - bPrice : bPrice - aPrice;
+        })
+      : allProducts;
+    const products = shouldSortByEffectivePrice
+      ? sortedProducts.slice((page - 1) * requestedLimit, page * requestedLimit)
+      : sortedProducts;
 
     return apiSuccess(
       products.map((product) => ({

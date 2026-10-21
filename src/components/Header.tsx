@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Search, ShoppingCart } from 'lucide-react';
+import { Menu, Search, ShoppingCart, X } from 'lucide-react';
 import { FormEvent, useState, useEffect } from 'react';
 import AuthButtons from "../components/AuthButtons";
 
@@ -12,6 +12,7 @@ export default function Header() {
     const router = useRouter();
     const [searchKeyword, setSearchKeyword] = useState('');
     const [cartCount, setCartCount] = useState(0);
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
     // Lấy số lượng sản phẩm trong giỏ hàng từ API để hiển thị huy hiệu động
     useEffect(() => {
@@ -40,6 +41,19 @@ export default function Header() {
             window.removeEventListener('cart-updated', handleCartUpdated);
         };
     }, [pathname]); // Cập nhật lại mỗi khi đổi trang
+
+    useEffect(() => {
+        if (!isMobileMenuOpen) return;
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') setIsMobileMenuOpen(false);
+        };
+        document.addEventListener('keydown', onKeyDown);
+        document.body.style.overflow = 'hidden';
+        return () => {
+            document.removeEventListener('keydown', onKeyDown);
+            document.body.style.overflow = '';
+        };
+    }, [isMobileMenuOpen]);
 
     const handleSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -153,8 +167,50 @@ export default function Header() {
                                 </span>
                             )}
                         </Link>
+                        <button
+                            type="button"
+                            aria-label={isMobileMenuOpen ? 'Đóng menu' : 'Mở menu'}
+                            aria-expanded={isMobileMenuOpen}
+                            onClick={() => setIsMobileMenuOpen((open) => !open)}
+                            className="grid size-10 place-items-center rounded-full text-[#164F8D] hover:bg-gray-100 lg:hidden"
+                        >
+                            {isMobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
+                        </button>
                     </div>
                 </div>
+                {isMobileMenuOpen && (
+                    <div className="border-t border-gray-100 bg-white px-4 py-4 shadow-lg lg:hidden">
+                        <form onSubmit={handleSearchSubmit} className="relative mb-4">
+                            <input
+                                type="text"
+                                value={searchKeyword}
+                                onChange={(event) => setSearchKeyword(event.target.value)}
+                                placeholder="Tìm kiếm sản phẩm..."
+                                aria-label="Tìm kiếm sản phẩm"
+                                className="w-full rounded-full border border-[#17579B] bg-white px-4 py-2 pr-10 text-sm text-gray-700 outline-none focus:ring-2 focus:ring-[#dbeafe]"
+                            />
+                            <button type="submit" aria-label="Tìm kiếm" className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">
+                                <Search size={18} />
+                            </button>
+                        </form>
+                        <nav aria-label="Điều hướng mobile" className="grid gap-1 text-sm font-medium text-gray-700">
+                            {[
+                                ['/', 'Trang chủ'],
+                                ['/products', 'Sản phẩm'],
+                                ['/collections', 'Bộ sưu tập'],
+                                ['/about', 'Giới thiệu'],
+                                ['/contact', 'Liên hệ'],
+                            ].map(([href, label]) => (
+                                <Link key={href} href={href} onClick={() => setIsMobileMenuOpen(false)} className="rounded-lg px-3 py-3 hover:bg-gray-50">
+                                    {label}
+                                </Link>
+                            ))}
+                        </nav>
+                        <div className="mt-3 border-t border-gray-100 pt-3 text-sm text-gray-700">
+                            <AuthButtons />
+                        </div>
+                    </div>
+                )}
             </div>
         </header>
     );

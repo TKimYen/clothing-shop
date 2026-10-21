@@ -1,5 +1,6 @@
 // src/app/about/page.tsx
 import { Sparkles, ShieldCheck, Truck, RefreshCw } from 'lucide-react';
+import Image from 'next/image';
 
 export default function AboutPage() {
   return (
@@ -20,9 +21,11 @@ export default function AboutPage() {
       {/* Phần hình ảnh minh họa / Banner giới thiệu */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center mb-16">
         <div className="rounded-2xl overflow-hidden bg-gray-100 aspect-[4/3] shadow-sm">
-          <img 
+          <Image
             src="/images/t_shirt_1.png" 
             alt="BlueWear Studio" 
+            fill
+            sizes="(max-width: 768px) 100vw, 50vw"
             className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
           />
         </div>

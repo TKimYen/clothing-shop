@@ -4,6 +4,8 @@
 import { Trash2, ShoppingBag, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import Image from "next/image";
+import { toast } from "sonner";
 
 type CartItem = {
   id: string;
@@ -31,6 +33,7 @@ type CartItem = {
 export default function CartPage() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [editingQuantities, setEditingQuantities] = useState<
     Record<string, string>
   >({});
@@ -40,16 +43,18 @@ export default function CartPage() {
     try {
       const res = await fetch("/api/cart");
       const result = await res.json();
-      if (result.success) {
-        setCartItems(result.data);
-      }
+      if (!res.ok || !result.success) throw new Error(result.error?.message ?? "Không thể tải giỏ hàng");
+      setCartItems(result.data);
+      setErrorMessage(null);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Không thể tải giỏ hàng");
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchCart().catch((error) => console.error("Lỗi tải giỏ hàng:", error));
+    void Promise.resolve().then(() => fetchCart()).catch((error) => console.error("Lỗi tải giỏ hàng:", error));
   }, []);
 
   // Thay đổi số lượng (Tăng / Giảm)
@@ -63,13 +68,13 @@ export default function CartPage() {
     if (newQty < 1) return;
     if (newQty > item.quantity && newQty > stock) {
       // Chỉ chặn khi TĂNG vượt tồn kho
-      alert(`Chỉ còn ${stock} sản phẩm trong kho`);
+      toast.error(`Chỉ còn ${stock} sản phẩm trong kho`);
       return;
     }
     if (newQty < item.quantity && newQty > stock) {
       // Đang vượt tồn kho mà bấm giảm → đưa thẳng về bằng tồn kho
       if (stock < 1) {
-        alert("Sản phẩm đã hết hàng, vui lòng xóa khỏi giỏ hàng");
+        toast.error("Sản phẩm đã hết hàng, vui lòng xóa khỏi giỏ hàng");
         return;
       }
       newQty = stock;
@@ -88,7 +93,7 @@ export default function CartPage() {
           items.map((i) => (i.id === itemId ? { ...i, quantity: newQty } : i)),
         );
       } else {
-        alert(result.error?.message ?? "Không thể cập nhật số lượng");
+        toast.error(result.error?.message ?? "Không thể cập nhật số lượng");
         fetchCart().catch((error) => console.error("Lỗi tải giỏ hàng:", error));
       }
     } catch (error) {
@@ -170,6 +175,12 @@ export default function CartPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
+      {errorMessage ? (
+        <div role="alert" className="mb-6 flex items-center justify-between gap-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <span>{errorMessage}</span>
+          <button type="button" onClick={() => void fetchCart()} className="font-semibold underline">Thử lại</button>
+        </div>
+      ) : null}
       <h1 className="text-3xl font-bold text-[#164F8D] mb-8">
         Giỏ hàng của bạn
       </h1>
@@ -200,12 +211,15 @@ export default function CartPage() {
               return (
                 <div
                   key={item.id}
-                  className="flex gap-4 p-4 bg-white rounded-xl border border-gray-100 shadow-sm items-center"
+                  className="flex flex-wrap gap-4 p-4 bg-white rounded-xl border border-gray-100 shadow-sm items-start sm:items-center"
                 >
                   <div className="relative w-20 h-24 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
-                    <img
+                    <Image
                       src={imageUrl}
                       alt={product.name}
+                      fill
+                      sizes="80px"
+                      unoptimized
                       className="w-full h-full object-cover"
                     />
                     {item.variant.stockQuantity <= 10 ? (
@@ -215,7 +229,7 @@ export default function CartPage() {
                     ) : null}
                   </div>
 
-                  <div className="flex-grow">
+                  <div className="min-w-0 flex-1 sm:flex-grow">
                     <h3 className="font-semibold text-gray-800">
                       {product.name}
                     </h3>
@@ -241,7 +255,7 @@ export default function CartPage() {
                   </div>
 
                   {/* Điều chỉnh số lượng */}
-                  <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
+                  <div className="ml-[5.5rem] flex items-center border border-gray-200 rounded-lg overflow-hidden sm:ml-0">
                     <input
                       type="text"
                       inputMode="numeric"
@@ -264,7 +278,9 @@ export default function CartPage() {
 
                   {/* Nút xóa */}
                   <button
+                    type="button"
                     onClick={() => removeItem(item.id)}
+                    aria-label={`Xóa ${product.name} khỏi giỏ hàng`}
                     className="p-2 text-gray-400 hover:text-red-500 transition-colors"
                   >
                     <Trash2 size={20} />

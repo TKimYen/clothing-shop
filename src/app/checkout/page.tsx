@@ -12,6 +12,8 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
+import { toast } from "sonner";
 
 type Address = {
   id: string;
@@ -122,33 +124,33 @@ export default function CheckoutPage() {
   function handleApplyProductCoupon() {
     if (productCoupon.toUpperCase() === "GIAM10K") {
       setProductDiscount(10000);
-      alert("Đã áp dụng mã giảm giá sản phẩm thành công!");
+      toast.success("Đã áp dụng mã giảm giá sản phẩm");
     } else {
-      alert("Mã giảm giá sản phẩm không hợp lệ");
+      toast.error("Mã giảm giá sản phẩm không hợp lệ");
     }
   }
 
   function handleApplyShipCoupon() {
     if (shipCoupon.toUpperCase() === "FREESHIP") {
       setShipDiscount(30000);
-      alert("Đã áp dụng mã miễn phí vận chuyển thành công!");
+      toast.success("Đã áp dụng mã miễn phí vận chuyển");
     } else {
-      alert("Mã vận chuyển không hợp lệ");
+      toast.error("Mã vận chuyển không hợp lệ");
     }
   }
 
   async function handlePlaceOrder(e: FormEvent) {
     e.preventDefault();
     if (cartItems.length === 0) {
-      alert("Giỏ hàng của bạn đang trống, không thể thanh toán!");
+      toast.error("Giỏ hàng của bạn đang trống, không thể thanh toán");
       return;
     }
     if (!selectedAddressId) {
-      alert("Vui lòng chọn địa chỉ nhận hàng");
+      toast.error("Vui lòng chọn địa chỉ nhận hàng");
       return;
     }
     if (paymentType === "ONLINE" && !selectedPaymentId) {
-      alert(
+      toast.error(
         "Vui lòng chọn tài khoản ngân hàng hoặc ví điện tử để thanh toán online",
       );
       return;
@@ -170,14 +172,14 @@ export default function CheckoutPage() {
 
       const result = await res.json();
       if (result.success) {
-        alert("Đặt hàng thành công!");
+        toast.success("Đặt hàng thành công");
         router.push("/orders");
       } else {
-        alert(result.error?.message || "Không thể đặt hàng");
+        toast.error(result.error?.message || "Không thể đặt hàng");
       }
     } catch (error) {
       console.error("Lỗi đặt hàng:", error);
-      alert("Lỗi kết nối máy chủ");
+      toast.error("Lỗi kết nối máy chủ");
     } finally {
       setIsSubmitting(false);
     }
@@ -196,7 +198,7 @@ export default function CheckoutPage() {
 
   if (cartItems.length === 0) {
     return (
-      <main className="container mx-auto px-4 py-16 max-w-lg text-center bg-white rounded-2xl border border-gray-100 shadow-xs mt-10">
+      <div className="container mx-auto px-4 py-16 max-w-lg text-center bg-white rounded-2xl border border-gray-100 shadow-xs mt-10">
         <ShoppingBag size={48} className="mx-auto text-gray-300 mb-3" />
         <h2 className="text-lg font-bold text-gray-800">
           Giỏ hàng của bạn đang trống
@@ -210,12 +212,12 @@ export default function CheckoutPage() {
         >
           Quay lại mua sắm
         </Link>
-      </main>
+      </div>
     );
   }
 
   return (
-    <main className="container mx-auto px-4 py-8 max-w-5xl">
+    <div className="container mx-auto px-4 py-8 max-w-5xl">
       <h1 className="text-2xl font-bold text-[#164F8D] mb-6">
         Tiến hành thanh toán
       </h1>
@@ -297,9 +299,12 @@ export default function CheckoutPage() {
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 rounded-lg bg-gray-100 overflow-hidden shrink-0 border relative">
-                        <img
+                        <Image
                           src={product.images?.[0]?.url || "/placeholder.png"}
                           alt={product.name}
+                          fill
+                          sizes="48px"
+                          unoptimized
                           className="w-full h-full object-cover"
                         />
                       </div>
@@ -506,6 +511,6 @@ export default function CheckoutPage() {
           </div>
         </div>
       </form>
-    </main>
+    </div>
   );
 }

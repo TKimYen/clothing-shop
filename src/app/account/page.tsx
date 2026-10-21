@@ -7,7 +7,7 @@ export default async function AccountPage() {
   await auth.protect();
 
   return (
-    <main className="container mx-auto px-4 py-8 max-w-4xl">
+    <div className="container mx-auto px-4 py-8 max-w-4xl">
       <h1 className="text-3xl font-bold text-[#164F8D] mb-8">Thông tin tài khoản</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -23,6 +23,6 @@ export default async function AccountPage() {
           <AddressManager />
         </section>
       </div>
-    </main>
+    </div>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useMemo, useState } from "react";
 import type { ProductDetail } from "@/src/lib/product-detail";
 
@@ -128,7 +129,7 @@ export default function ProductDetailClient({
   const displayPrice = product.salePrice ?? product.price;
 
   return (
-    <main className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8">
       <Link href="/products" className="text-sm text-[#17579B] hover:underline">
         ← Quay lại sản phẩm
       </Link>
@@ -137,9 +138,12 @@ export default function ProductDetailClient({
         <section>
           <div className="aspect-[4/5] overflow-hidden rounded-xl bg-gray-100">
             {selectedImage ? (
-              <img
+              <Image
                 src={selectedImage.url}
                 alt={selectedImage.altText ?? product.name}
+                fill
+                sizes="(max-width: 1024px) 100vw, 50vw"
+                unoptimized
                 className="h-full w-full object-cover"
               />
             ) : (
@@ -158,9 +162,12 @@ export default function ProductDetailClient({
                   className={`aspect-square overflow-hidden rounded-lg border-2 ${selectedImage?.id === image.id ? "border-[#17579B]" : "border-transparent"}`}
                   aria-label={`Xem ảnh ${image.altText ?? product.name}`}
                 >
-                  <img
+                  <Image
                     src={image.url}
                     alt=""
+                    fill
+                    sizes="120px"
+                    unoptimized
                     className="h-full w-full object-cover"
                   />
                 </button>
@@ -305,6 +312,6 @@ export default function ProductDetailClient({
           ) : null}
         </section>
       </div>
-    </main>
+    </div>
   );
 }
