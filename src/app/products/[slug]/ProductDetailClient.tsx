@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ProductDetail } from "@/src/lib/product-detail";
 
@@ -175,18 +176,21 @@ export default function ProductDetailClient({
   const displayPrice = product.salePrice ?? product.price;
 
   return (
-    <main className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8">
       <Link href="/products" className="text-sm text-[#17579B] hover:underline">
         ← Quay lại sản phẩm
       </Link>
 
       <div className="mt-6 grid grid-cols-1 gap-8 md:gap-10 lg:grid-cols-2">
         <section>
-          <div className="aspect-[4/5] overflow-hidden rounded-xl bg-gray-100">
+          <div className="relative aspect-[4/5] overflow-hidden rounded-xl bg-gray-100">
             {selectedImage ? (
-              <img
+              <Image
                 src={selectedImage.url}
                 alt={selectedImage.altText ?? product.name}
+                fill
+                sizes="(max-width: 1024px) 100vw, 50vw"
+                unoptimized
                 className="h-full w-full object-cover"
               />
             ) : (
@@ -202,12 +206,15 @@ export default function ProductDetailClient({
                   key={image.id}
                   type="button"
                   onClick={() => setSelectedImageId(image.id)}
-                  className={`aspect-square overflow-hidden rounded-lg border-2 ${selectedImage?.id === image.id ? "border-[#17579B]" : "border-transparent"}`}
+                  className={`relative aspect-square overflow-hidden rounded-lg border-2 ${selectedImage?.id === image.id ? "border-[#17579B]" : "border-transparent"}`}
                   aria-label={`Xem ảnh ${image.altText ?? product.name}`}
                 >
-                  <img
+                  <Image
                     src={image.url}
                     alt=""
+                    fill
+                    sizes="120px"
+                    unoptimized
                     className="h-full w-full object-cover"
                   />
                 </button>
@@ -356,6 +363,6 @@ export default function ProductDetailClient({
           ) : null}
         </section>
       </div>
-    </main>
+    </div>
   );
 }

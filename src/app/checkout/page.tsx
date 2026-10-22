@@ -17,6 +17,7 @@ import {
   hasBankTransferInfo,
 } from "@/src/lib/payment-config";
 import Image from "next/image";
+import { toast } from "sonner";
 
 type CouponOption = {
   id: string;
@@ -315,11 +316,11 @@ export default function CheckoutPage() {
       }
       setProductDiscount(Number(result.data.discount));
       setAppliedProductCoupon(result.data.code);
-      alert(`Đã giảm ${Number(result.data.discount).toLocaleString("vi-VN")}đ`);
+      toast.success(`Đã giảm ${Number(result.data.discount).toLocaleString("vi-VN")}đ`);
     } catch (error) {
       setProductDiscount(0);
       setAppliedProductCoupon("");
-      alert(
+      toast.error(
         error instanceof Error ? error.message : "Mã giảm giá không hợp lệ",
       );
     }
@@ -345,13 +346,13 @@ export default function CheckoutPage() {
       }
       setShipDiscount(Number(result.data.discount));
       setAppliedShipCoupon(result.data.code);
-      alert(
+      toast.success(
         `Đã giảm ${Number(result.data.discount).toLocaleString("vi-VN")}đ phí vận chuyển`,
       );
     } catch (error) {
       setShipDiscount(0);
       setAppliedShipCoupon("");
-      alert(
+      toast.error(
         error instanceof Error ? error.message : "Mã vận chuyển không hợp lệ",
       );
     }
@@ -360,11 +361,11 @@ export default function CheckoutPage() {
   async function handlePlaceOrder(e: FormEvent) {
     e.preventDefault();
     if (cartItems.length === 0) {
-      alert("Không có sản phẩm nào được chọn thanh toán!");
+      toast.error("Không có sản phẩm nào được chọn thanh toán");
       return;
     }
     if (!selectedAddressId) {
-      alert("Vui lòng chọn địa chỉ nhận hàng");
+      toast.error("Vui lòng chọn địa chỉ nhận hàng");
       return;
     }
     try {
@@ -382,16 +383,16 @@ export default function CheckoutPage() {
 
       const result = await res.json();
       if (result.success) {
-        alert("Đặt hàng thành công!");
+        toast.success("Đặt hàng thành công");
         sessionStorage.removeItem("checkoutItemIds");
         // Đơn chuyển khoản hiển thị mã QR thanh toán tại trang đơn hàng
         router.push("/orders");
       } else {
-        alert(result.error?.message || "Không thể đặt hàng");
+        toast.error(result.error?.message || "Không thể đặt hàng");
       }
     } catch (error) {
       console.error("Lỗi đặt hàng:", error);
-      alert("Lỗi kết nối máy chủ");
+      toast.error("Lỗi kết nối máy chủ");
     } finally {
       setIsSubmitting(false);
     }
@@ -410,7 +411,7 @@ export default function CheckoutPage() {
 
   if (cartItems.length === 0) {
     return (
-      <main className="container mx-auto px-4 py-16 max-w-lg text-center bg-white rounded-2xl border border-gray-100 shadow-xs mt-10">
+      <div className="container mx-auto px-4 py-16 max-w-lg text-center bg-white rounded-2xl border border-gray-100 shadow-xs mt-10">
         <ShoppingBag size={48} className="mx-auto text-gray-300 mb-3" />
         <h2 className="text-lg font-bold text-gray-800">
           Chưa có sản phẩm nào được chọn
@@ -424,12 +425,12 @@ export default function CheckoutPage() {
         >
           Quay lại giỏ hàng
         </Link>
-      </main>
+      </div>
     );
   }
 
   return (
-    <main className="container mx-auto px-4 py-8 max-w-5xl">
+    <div className="container mx-auto px-4 py-8 max-w-5xl">
       <h1 className="text-2xl font-bold text-[#164F8D] mb-6">
         Tiến hành thanh toán
       </h1>
@@ -515,6 +516,8 @@ export default function CheckoutPage() {
                           src={product.images?.[0]?.url || "/placeholder.png"}
                           alt={product.name}
                           fill
+                          sizes="48px"
+                          unoptimized
                           className="object-cover"
                         />
                       </div>
@@ -780,6 +783,6 @@ export default function CheckoutPage() {
           </div>
         </div>
       </form>
-    </main>
+    </div>
   );
 }

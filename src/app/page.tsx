@@ -1,9 +1,10 @@
 ﻿// src/app/page.tsx
 "use client";
 
-import { Heart } from "lucide-react";
+import { Heart, Pause, Play } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import Image from "next/image";
 
 type ProductItem = {
   id: string;
@@ -62,6 +63,7 @@ export default function Home() {
     },
   ]);
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [isCarouselPaused, setIsCarouselPaused] = useState(false);
 
   // 1. Tải thêm các bộ sưu tập từ Database Neon để nối tiếp vào danh sách slide
   useEffect(() => {
@@ -92,14 +94,14 @@ export default function Home() {
 
   // 2. Tự động chuyển slide sau mỗi 10 giây
   useEffect(() => {
-    if (slides.length <= 1) return;
+    if (slides.length <= 1 || isCarouselPaused) return;
 
     const timer = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % slides.length);
     }, 10000);
 
     return () => clearInterval(timer);
-  }, [slides.length]);
+  }, [slides.length, isCarouselPaused]);
 
   // 3. Tải danh sách sản phẩm nổi bật
   useEffect(() => {
@@ -145,11 +147,23 @@ export default function Home() {
     <>
       {/* BANNER GIỮ NGUYÊN KHUNG GỐC, TỰ ĐỘNG CHUYỂN TỪ BANNER CHÍNH SANG CÁC BỘ SƯU TẬP SAU 10S */}
       <section className="container mx-auto px-4 mt-6">
-        <div className="relative rounded-2xl overflow-hidden min-h-[450px] flex items-center bg-[#eff6ff]">
+        <div
+          className="relative rounded-2xl overflow-hidden min-h-[450px] flex items-center bg-[#eff6ff]"
+          onMouseEnter={() => setIsCarouselPaused(true)}
+          onMouseLeave={() => setIsCarouselPaused(false)}
+          onFocus={() => setIsCarouselPaused(true)}
+          onBlur={(event) => {
+            if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setIsCarouselPaused(false);
+          }}
+        >
           <div className="absolute inset-0 z-0 pointer-events-none">
-            <img
+            <Image
               src={slide.image}
-              alt="BlueWear Banner"
+              alt={slide.title}
+              fill
+              priority={currentSlide === 0}
+              sizes="(max-width: 768px) 100vw, 1200px"
+              unoptimized
               className="w-full h-full object-cover object-right transition-opacity duration-700"
             />
             <div className="absolute inset-y-0 left-0 w-full md:w-3/5 bg-gradient-to-r from-[#eff6ff] via-[#eff6ff]/90 to-transparent"></div>
@@ -187,7 +201,18 @@ export default function Home() {
                   aria-label={`Chuyển đến slide ${idx + 1}`}
                 />
               ))}
+              {slides.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => setIsCarouselPaused((paused) => !paused)}
+                  aria-label={isCarouselPaused ? "Phát slideshow" : "Tạm dừng slideshow"}
+                  className="ml-1 grid size-7 place-items-center rounded-full text-[#17579B] hover:bg-white/70"
+                >
+                  {isCarouselPaused ? <Play size={13} /> : <Pause size={13} />}
+                </button>
+              )}
             </div>
+            <p className="sr-only" aria-live="polite">Slide {currentSlide + 1} trên {slides.length}: {slide.title}</p>
           </div>
         </div>
       </section>
@@ -227,9 +252,12 @@ export default function Home() {
                 <div key={product.id} className="group">
                   <div className="relative bg-gray-100 aspect-[3/4] mb-3 overflow-hidden rounded-md">
                     <Link href={`/products/${product.slug}`} className="block h-full">
-                      <img
+                      <Image
                         src={image?.url ?? "/images/t_shirt_1.png"}
                         alt={image?.altText ?? product.name}
+                        fill
+                        sizes="(max-width: 768px) 50vw, 20vw"
+                        unoptimized
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       />
                     </Link>

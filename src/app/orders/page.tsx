@@ -4,6 +4,7 @@
 import { useEffect, useState } from "react";
 import { ShoppingBag, Eye, XCircle, Loader2 } from "lucide-react";
 import Link from "next/link";
+import { toast } from "sonner";
 import { buildBankTransferQrUrl } from "@/src/lib/payment-config";
 
 type OrderItem = {
@@ -74,10 +75,10 @@ export default function OrdersPage() {
       });
       const result = await res.json();
       if (result.success) {
-        alert("Hủy đơn hàng thành công!");
+        toast.success("Hủy đơn hàng thành công");
         fetchOrders(); // Tải lại danh sách sau khi hủy và hoàn kho
       } else {
-        alert(result.error?.message || "Không thể hủy đơn hàng");
+        toast.error(result.error?.message || "Không thể hủy đơn hàng");
       }
     } catch (error) {
       console.error("Lỗi hủy đơn hàng:", error);
@@ -90,7 +91,7 @@ export default function OrdersPage() {
     activeTab === "ALL" ? orders : orders.filter((o) => o.status === activeTab);
 
   return (
-    <main className="container mx-auto px-4 py-8 max-w-4xl">
+    <div className="container mx-auto px-4 py-8 max-w-4xl">
       <h1 className="text-2xl font-bold text-[#164F8D] mb-6">
         Đơn hàng của tôi
       </h1>
@@ -276,6 +277,6 @@ export default function OrdersPage() {
           ))}
         </div>
       )}
-    </main>
+    </div>
   );
 }

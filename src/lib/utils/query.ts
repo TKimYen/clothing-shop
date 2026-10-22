@@ -128,5 +128,17 @@ export function withResetPage(state: AdminListState): AdminListState {
 }
 
 export function areStatesEqual(a: AdminListState, b: AdminListState): boolean {
-  return serializeListState(a) === serializeListState(b);
+  if (
+    a.page !== b.page ||
+    a.pageSize !== b.pageSize ||
+    a.search !== b.search ||
+    a.sort !== b.sort ||
+    a.direction !== b.direction
+  ) {
+    return false;
+  }
+
+  const aFilters = Object.entries(a.filters).filter(([, value]) => value).sort(([aKey], [bKey]) => aKey.localeCompare(bKey));
+  const bFilters = Object.entries(b.filters).filter(([, value]) => value).sort(([aKey], [bKey]) => aKey.localeCompare(bKey));
+  return JSON.stringify(aFilters) === JSON.stringify(bFilters);
 }

@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Package, MapPin, CreditCard, Loader2, AlertCircle } from "lucide-react";
 import Link from "next/link";
+import { toast } from "sonner";
 import Image from "next/image";
 
 type OrderItem = {
@@ -64,7 +65,7 @@ export default function OrderDetailPage() {
       if (result.success) {
         setOrder(result.data);
       } else {
-        alert(result.error?.message || "Không thể tải thông tin đơn hàng");
+        toast.error(result.error?.message || "Không thể tải thông tin đơn hàng");
       }
     } catch (error) {
       console.error("Lỗi tải chi tiết đơn hàng:", error);
@@ -85,10 +86,10 @@ export default function OrderDetailPage() {
       });
       const result = await res.json();
       if (result.success) {
-        alert("Hủy đơn hàng thành công!");
+        toast.success("Hủy đơn hàng thành công");
         fetchOrderDetail(); // Tải lại thông tin đơn hàng
       } else {
-        alert(result.error?.message || "Không thể hủy đơn hàng");
+        toast.error(result.error?.message || "Không thể hủy đơn hàng");
       }
     } catch (error) {
       console.error("Lỗi hủy đơn hàng:", error);

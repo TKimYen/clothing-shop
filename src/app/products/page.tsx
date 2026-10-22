@@ -5,6 +5,8 @@ import { Heart, Filter, Search, ShoppingCart, X, Loader2, RefreshCw } from 'luci
 import { Fragment, Suspense, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
+import { toast } from 'sonner';
 
 type ColorItem = {
   id: string;
@@ -149,6 +151,9 @@ function ProductsPageContent() {
   const [keyword, setKeyword] = useState(initialParams.search);
   const [minPriceInput, setMinPriceInput] = useState(initialParams.minPrice);
   const [maxPriceInput, setMaxPriceInput] = useState(initialParams.maxPrice);
+  const [debouncedKeyword, setDebouncedKeyword] = useState(initialParams.search);
+  const [debouncedMinPrice, setDebouncedMinPrice] = useState(initialParams.minPrice);
+  const [debouncedMaxPrice, setDebouncedMaxPrice] = useState(initialParams.maxPrice);
   const [products, setProducts] = useState<ProductItem[]>([]);
   const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -169,6 +174,15 @@ function ProductsPageContent() {
   const [isFetchingDetail, setIsFetchingDetail] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
 
+  useEffect(() => {
+    if (!activeProduct) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setActiveProduct(null);
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [activeProduct]);
+
   // Đồng bộ searchParams từ URL (cập nhật ngay khi render, không cần effect)
   const [prevSearchParams, setPrevSearchParams] = useState(searchParams);
   if (searchParams !== prevSearchParams) {
@@ -182,6 +196,15 @@ function ProductsPageContent() {
     setMaxPriceInput(params.maxPrice);
     setCurrentPage(params.page);
   }
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedKeyword(keyword);
+      setDebouncedMinPrice(minPriceInput);
+      setDebouncedMaxPrice(maxPriceInput);
+    }, 350);
+    return () => window.clearTimeout(timer);
+  }, [keyword, minPriceInput, maxPriceInput]);
 
   // Đồng bộ URL state
   useEffect(() => {
@@ -227,8 +250,8 @@ function ProductsPageContent() {
       setIsLoading(true);
       setErrorMessage(null);
 
-      const normalizedMin = minPriceInput.trim();
-      const normalizedMax = maxPriceInput.trim();
+      const normalizedMin = debouncedMinPrice.trim();
+      const normalizedMax = debouncedMaxPrice.trim();
 
       if (normalizedMin && Number.isNaN(Number(normalizedMin))) throw new Error('Giá tối thiểu không hợp lệ');
       if (normalizedMax && Number.isNaN(Number(normalizedMax))) throw new Error('Giá tối đa không hợp lệ');
@@ -242,7 +265,7 @@ function ProductsPageContent() {
         page: String(currentPage),
       });
 
-      if (keyword.trim()) params.set('search', keyword.trim());
+      if (debouncedKeyword.trim()) params.set('search', debouncedKeyword.trim());
       if (selectedCategorySlug !== 'all') params.set('category', selectedCategorySlug);
       if (collectionFilter) params.set('collection', collectionFilter);
       if (normalizedMin) params.set('minPrice', normalizedMin);
@@ -257,7 +280,12 @@ function ProductsPageContent() {
 
       if (!isActive) return;
       setProducts(result.data);
-      if (result.meta) setTotalPages(result.meta.totalPages);
+      if (result.meta) {
+        setTotalPages(result.meta.totalPages);
+        if (result.meta.totalPages > 0 && currentPage > result.meta.totalPages) {
+          setCurrentPage(result.meta.totalPages);
+        }
+      }
     }
 
     loadProducts()
@@ -269,7 +297,7 @@ function ProductsPageContent() {
       });
 
     return () => { isActive = false; };
-  }, [selectedCategorySlug, sortValue, collectionFilter, keyword, minPriceInput, maxPriceInput, currentPage, reloadToken]);
+  }, [selectedCategorySlug, sortValue, collectionFilter, debouncedKeyword, debouncedMinPrice, debouncedMaxPrice, currentPage, reloadToken]);
 
   const sidebarItems = useMemo(
     () => [
@@ -318,11 +346,11 @@ function ProductsPageContent() {
           setSelectedSizeId(firstVariant.size.id);
         }
       } else {
-        alert('Không thể tải thông tin phân loại sản phẩm từ cơ sở dữ liệu!');
+        toast.error('Không thể tải thông tin phân loại sản phẩm từ cơ sở dữ liệu');
       }
     } catch (err) {
       console.error(err);
-      alert('Lỗi kết nối khi tải phân loại sản phẩm.');
+      toast.error('Lỗi kết nối khi tải phân loại sản phẩm');
     } finally {
       setIsFetchingDetail(false);
     }
@@ -356,12 +384,12 @@ function ProductsPageContent() {
   // Thêm vào giỏ hàng kết nối Database qua API /api/cart
   const handleConfirmAddToCart = async () => {
     if (!selectedVariant) {
-      alert('Vui lòng chọn đầy đủ màu sắc và kích thước!');
+      toast.error('Vui lòng chọn đầy đủ màu sắc và kích thước');
       return;
     }
 
     if (selectedVariant.stockQuantity < quantity) {
-      alert('Số lượng trong kho không đủ!');
+      toast.error('Số lượng trong kho không đủ');
       return;
     }
 
@@ -379,10 +407,10 @@ function ProductsPageContent() {
       const result = await response.json();
       if (response.ok && result.success) {
         window.dispatchEvent(new Event('cart-updated'));
-        alert(`Đã thêm "${activeProduct?.name}" vào giỏ hàng thành công!`);
+        toast.success(`Đã thêm "${activeProduct?.name}" vào giỏ hàng`);
         handleCloseQuickAdd();
       } else {
-        alert(
+        toast.error(
           response.status === 401
             ? 'Vui lòng đăng nhập để thêm vào giỏ hàng'
             : result.error?.message || 'Không thể thêm vào giỏ hàng. Vui lòng thử lại!'
@@ -390,7 +418,7 @@ function ProductsPageContent() {
       }
     } catch (err) {
       console.error(err);
-      alert('Lỗi kết nối đến cơ sở dữ liệu giỏ hàng.');
+      toast.error('Lỗi kết nối đến cơ sở dữ liệu giỏ hàng');
     } finally {
       setIsAdding(false);
     }
@@ -428,6 +456,7 @@ function ProductsPageContent() {
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
+                aria-label="Tìm kiếm sản phẩm"
               value={keyword}
               onChange={(event) => {
                 setKeyword(event.target.value);
@@ -442,6 +471,7 @@ function ProductsPageContent() {
             <input
               type="number"
               min="0"
+              aria-label="Giá tối thiểu"
               value={minPriceInput}
               onChange={(event) => {
                 setMinPriceInput(event.target.value);
@@ -454,6 +484,7 @@ function ProductsPageContent() {
             <input
               type="number"
               min="0"
+              aria-label="Giá tối đa"
               value={maxPriceInput}
               onChange={(event) => {
                 setMaxPriceInput(event.target.value);
@@ -463,6 +494,21 @@ function ProductsPageContent() {
               className="w-32 rounded-full border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 outline-none focus:border-[#17579B]"
             />
           </div>
+
+          <label className="sr-only" htmlFor="mobile-category-filter">Danh mục sản phẩm</label>
+          <select
+            id="mobile-category-filter"
+            value={selectedCategorySlug}
+            onChange={(event) => {
+              setSelectedCategorySlug(event.target.value);
+              setCurrentPage(1);
+            }}
+            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-700 outline-none focus:border-[#17579B] lg:hidden"
+          >
+            {sidebarItems.map((item) => (
+              <option key={item.key} value={item.key}>{item.label}</option>
+            ))}
+          </select>
         </div>
 
         {hasActiveFilters ? (
@@ -556,9 +602,12 @@ function ProductsPageContent() {
                   return (
                     <div key={product.id} className="group relative flex flex-col bg-white rounded-xl border border-gray-100 overflow-hidden shadow-xs hover:shadow-md transition-shadow">
                       <Link href={`/products/${product.slug}`} className="relative bg-gray-100 aspect-[3/4] overflow-hidden block">
-                        <img
+                        <Image
                           src={image?.url ?? '/images/t_shirt_1.png'}
                           alt={image?.altText ?? product.name}
+                          fill
+                          sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                          unoptimized
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />
                       </Link>
@@ -659,10 +708,11 @@ function ProductsPageContent() {
       {/* MODAL POPUP QUICK ADD (TRUY VẤN MÀU, SIZE, SỐ LƯỢNG TỪ DATABASE) */}
       {activeProduct && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden relative animate-in fade-in zoom-in duration-200">
+          <div role="dialog" aria-modal="true" aria-labelledby="quick-add-title" className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90dvh] overflow-y-auto relative animate-in fade-in zoom-in duration-200">
             <button
               type="button"
               onClick={handleCloseQuickAdd}
+              aria-label="Đóng chọn nhanh sản phẩm"
               className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 rounded-full bg-gray-100 cursor-pointer"
             >
               <X size={18} />
@@ -670,13 +720,16 @@ function ProductsPageContent() {
 
             <div className="p-6">
               <div className="flex items-center gap-4 mb-6 border-b pb-4">
-                <img
+                <Image
                   src={activeProduct.images[0]?.url || '/images/t_shirt_1.png'}
                   alt={activeProduct.name}
+                  width={64}
+                  height={80}
+                  unoptimized
                   className="w-16 h-20 object-cover rounded-lg bg-gray-100"
                 />
                 <div>
-                  <h3 className="font-bold text-gray-800 text-base line-clamp-1">{activeProduct.name}</h3>
+                  <h3 id="quick-add-title" className="font-bold text-gray-800 text-base line-clamp-1">{activeProduct.name}</h3>
                   <p className="text-[#164F8D] font-bold text-lg mt-1">
                     {formatPrice(activeProduct.salePrice ?? activeProduct.price)}
                   </p>

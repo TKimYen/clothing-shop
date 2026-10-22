@@ -1,6 +1,6 @@
 import { apiError, apiSuccess } from "@/src/lib/api-response";
 import { prisma } from "@/src/lib/db";
-import { getActiveSalePrice } from "@/src/lib/pricing";
+import { getActiveSalePrice, getEffectivePrice } from "@/src/lib/pricing";
 
 const DEFAULT_PAGE_SIZE = 12;
 const MAX_PAGE_SIZE = 50;
@@ -69,7 +69,7 @@ export async function GET(request: Request) {
       throw new Error(`sort must be one of: ${SORT_VALUES.join(", ")}`);
     }
 
-    const priceFilter =
+    const priceRange =
       minPrice !== undefined || maxPrice !== undefined
         ? {
             ...(minPrice !== undefined ? { gte: minPrice } : {}),
@@ -77,8 +77,26 @@ export async function GET(request: Request) {
           }
         : undefined;
 
+    // Lọc theo giá thực tế: giá sale nếu đang trong đợt khuyến mãi, ngược lại giá gốc
+    const now = new Date();
+    const saleIsActive = {
+      salePrice: { not: null },
+      OR: [{ saleStartsAt: null }, { saleStartsAt: { lte: now } }],
+      AND: [{ OR: [{ saleEndsAt: null }, { saleEndsAt: { gte: now } }] }],
+    };
+    const effectivePriceFilter = priceRange
+      ? {
+          OR: [
+            { AND: [saleIsActive, { salePrice: priceRange }] },
+            { NOT: saleIsActive, price: priceRange },
+          ],
+        }
+      : undefined;
+
     const where = {
       isActive: true,
+      // search và bộ lọc giá đều dùng OR nên phải gộp bằng AND để không ghi đè nhau
+      ...(effectivePriceFilter ? { AND: [effectivePriceFilter] } : {}),
       ...(search
         ? {
             OR: [
@@ -92,7 +110,6 @@ export async function GET(request: Request) {
             ],
           }
         : {}),
-      ...(priceFilter ? { price: priceFilter } : {}),
       ...(category
         ? {
             category: {
@@ -118,12 +135,17 @@ export async function GET(request: Request) {
             ? { name: "asc" as const }
             : { createdAt: "desc" as const };
 
-    const [products, total] = await Promise.all([
+    const shouldSortByEffectivePrice = sort === "price_asc" || sort === "price_desc";
+    const [allProducts, total] = await Promise.all([
       prisma.product.findMany({
         where,
-        orderBy,
-        skip: (page - 1) * requestedLimit,
-        take: requestedLimit,
+        orderBy: shouldSortByEffectivePrice ? { createdAt: "desc" } : orderBy,
+        ...(shouldSortByEffectivePrice
+          ? {}
+          : {
+              skip: (page - 1) * requestedLimit,
+              take: requestedLimit,
+            }),
         select: {
           id: true,
           name: true,
@@ -155,6 +177,17 @@ export async function GET(request: Request) {
       }),
       prisma.product.count({ where }),
     ]);
+
+    const sortedProducts = shouldSortByEffectivePrice
+      ? [...allProducts].sort((a, b) => {
+          const aPrice = getEffectivePrice(a, now);
+          const bPrice = getEffectivePrice(b, now);
+          return sort === "price_asc" ? aPrice - bPrice : bPrice - aPrice;
+        })
+      : allProducts;
+    const products = shouldSortByEffectivePrice
+      ? sortedProducts.slice((page - 1) * requestedLimit, page * requestedLimit)
+      : sortedProducts;
 
     return apiSuccess(
       products.map(({ saleStartsAt, saleEndsAt, ...product }) => ({
