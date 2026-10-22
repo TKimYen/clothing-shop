@@ -4,6 +4,7 @@
 import { Trash2, ShoppingBag, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 type CartItem = {
   id: string;
@@ -29,7 +30,9 @@ type CartItem = {
 };
 
 export default function CartPage() {
+  const router = useRouter();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [editingQuantities, setEditingQuantities] = useState<
     Record<string, string>
@@ -42,6 +45,8 @@ export default function CartPage() {
       const result = await res.json();
       if (result.success) {
         setCartItems(result.data);
+        // Mặc định khi tải xong sẽ tick chọn tất cả sản phẩm
+        setSelectedIds(result.data.map((item: CartItem) => item.id));
       }
     } finally {
       setIsLoading(false);
@@ -52,6 +57,24 @@ export default function CartPage() {
     fetchCart().catch((error) => console.error("Lỗi tải giỏ hàng:", error));
   }, []);
 
+  // Tick chọn / bỏ chọn 1 sản phẩm
+  const handleToggleSelect = (id: string) => {
+    if (selectedIds.includes(id)) {
+      setSelectedIds(selectedIds.filter((itemId) => itemId !== id));
+    } else {
+      setSelectedIds([...selectedIds, id]);
+    }
+  };
+
+  // Tick chọn / bỏ chọn tất cả
+  const handleToggleSelectAll = () => {
+    if (selectedIds.length === cartItems.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(cartItems.map((item) => item.id));
+    }
+  };
+
   // Thay đổi số lượng (Tăng / Giảm)
   const updateQuantity = async (itemId: string, newQty: number) => {
     const item = cartItems.find((i) => i.id === itemId);
@@ -59,15 +82,12 @@ export default function CartPage() {
 
     const stock = item.variant.stockQuantity;
 
-    // Chặn ở giao diện
     if (newQty < 1) return;
     if (newQty > item.quantity && newQty > stock) {
-      // Chỉ chặn khi TĂNG vượt tồn kho
       alert(`Chỉ còn ${stock} sản phẩm trong kho`);
       return;
     }
     if (newQty < item.quantity && newQty > stock) {
-      // Đang vượt tồn kho mà bấm giảm → đưa thẳng về bằng tồn kho
       if (stock < 1) {
         alert("Sản phẩm đã hết hàng, vui lòng xóa khỏi giỏ hàng");
         return;
@@ -140,20 +160,32 @@ export default function CartPage() {
       const result = await res.json();
       if (result.success) {
         setCartItems(cartItems.filter((item) => item.id !== itemId));
+        setSelectedIds(selectedIds.filter((id) => id !== itemId));
       }
     } catch (error) {
       console.error("Lỗi xóa sản phẩm:", error);
     }
   };
 
-  // Tính tổng tiền dựa trên giá thực tế của sản phẩm (ưu tiên salePrice nếu có)
-  const subtotal = cartItems.reduce((sum, item) => {
+  // Chỉ tính toán tạm tính dựa trên các sản phẩm được tick chọn
+  const selectedItems = cartItems.filter((item) => selectedIds.includes(item.id));
+  const subtotal = selectedItems.reduce((sum, item) => {
     const price = item.variant.product.salePrice ?? item.variant.product.price;
     return sum + Number(price) * item.quantity;
   }, 0);
 
   const shipping = subtotal >= 600000 || subtotal === 0 ? 0 : 30000;
   const total = subtotal + (subtotal > 0 ? shipping : 0);
+
+  // Tiến hành thanh toán: lưu danh sách ID được chọn sang trang checkout
+  const handleProceedToCheckout = () => {
+    if (selectedIds.length === 0) {
+      alert("Vui lòng chọn ít nhất một sản phẩm để thanh toán!");
+      return;
+    }
+    sessionStorage.setItem("checkoutItemIds", JSON.stringify(selectedIds));
+    router.push("/checkout");
+  };
 
   if (isLoading) {
     return (
@@ -163,13 +195,13 @@ export default function CartPage() {
     );
   }
 
-  //Khóa nút thanh toán nếu có sản phẩm vượt tồn kho
-  const hasStockIssue = cartItems.some(
+  // Khóa nút thanh toán nếu có sản phẩm được chọn vượt tồn kho
+  const hasStockIssue = selectedItems.some(
     (i) => i.quantity > i.variant.stockQuantity,
   );
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 max-w-5xl">
       <h1 className="text-3xl font-bold text-[#164F8D] mb-8">
         Giỏ hàng của bạn
       </h1>
@@ -191,17 +223,40 @@ export default function CartPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Danh sách sản phẩm trong giỏ */}
           <div className="lg:col-span-2 space-y-4">
+            {/* Thanh chọn tất cả */}
+            <div className="bg-white p-4 rounded-xl border border-gray-200 flex items-center justify-between text-xs font-semibold text-gray-700 shadow-sm">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input 
+                  type="checkbox"
+                  checked={selectedIds.length === cartItems.length && cartItems.length > 0}
+                  onChange={handleToggleSelectAll}
+                  className="w-4 h-4 accent-[#164F8D] cursor-pointer"
+                />
+                <span>Chọn tất cả ({cartItems.length} sản phẩm)</span>
+              </label>
+              <span className="text-gray-400">Đã chọn: {selectedIds.length}</span>
+            </div>
+
             {cartItems.map((item) => {
               const product = item.variant.product;
               const displayPrice = product.salePrice ?? product.price;
               const imageUrl =
                 product.images[0]?.url || "/images/t_shirt_1.png";
+              const isChecked = selectedIds.includes(item.id);
 
               return (
                 <div
                   key={item.id}
                   className="flex gap-4 p-4 bg-white rounded-xl border border-gray-100 shadow-sm items-center"
                 >
+                  {/* Ô checkbox chọn sản phẩm */}
+                  <input 
+                    type="checkbox"
+                    checked={isChecked}
+                    onChange={() => handleToggleSelect(item.id)}
+                    className="w-4 h-4 accent-[#164F8D] cursor-pointer shrink-0"
+                  />
+
                   <div className="relative w-20 h-24 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
                     <img
                       src={imageUrl}
@@ -300,7 +355,7 @@ export default function CartPage() {
 
             <div className="space-y-3 text-sm text-gray-600 mb-6">
               <div className="flex justify-between">
-                <span>Tạm tính:</span>
+                <span>Tạm tính ({selectedItems.length} sản phẩm):</span>
                 <span className="font-semibold text-gray-800">
                   {subtotal.toLocaleString("vi-VN")}đ
                 </span>
@@ -334,17 +389,27 @@ export default function CartPage() {
                   <ArrowRight size={18} />
                 </button>
                 <p className="mt-3 text-center text-xs text-red-600">
-                  Có sản phẩm vượt quá tồn kho, vui lòng giảm số lượng hoặc xóa
+                  Có sản phẩm được chọn vượt quá tồn kho, vui lòng giảm số lượng hoặc bỏ chọn
                 </p>
               </>
-            ) : (
-              <Link
-                href="/checkout"
-                className="w-full bg-[#17579B] hover:opacity-90 text-white py-3.5 rounded-xl font-medium flex items-center justify-center gap-2 transition-colors shadow-md block text-center"
+            ) : selectedItems.length === 0 ? (
+              <button
+                type="button"
+                disabled
+                className="w-full bg-gray-300 text-white py-3.5 rounded-xl font-medium flex items-center justify-center gap-2 cursor-not-allowed"
               >
                 <span>Tiến hành thanh toán</span>
                 <ArrowRight size={18} />
-              </Link>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleProceedToCheckout}
+                className="w-full bg-[#17579B] hover:opacity-90 text-white py-3.5 rounded-xl font-medium flex items-center justify-center gap-2 transition-colors shadow-md cursor-pointer"
+              >
+                <span>Tiến hành thanh toán</span>
+                <ArrowRight size={18} />
+              </button>
             )}
           </div>
         </div>

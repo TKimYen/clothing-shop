@@ -45,6 +45,8 @@ enum PaymentMethod {
   BANK_TRANSFER
   VNPAY
   MOMO
+  VISA
+  MASTERCARD
 }
 
 enum PaymentStatus {
