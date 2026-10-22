@@ -19,11 +19,14 @@ export const PUT = adminHandler<Params>(async (request, { id }) => {
   return mapProduct(row);
 });
 
-/** Variants and images cascade; a product that was already ordered is refused. */
+/** Variants and images cascade; a product with order or stock-import history is refused. */
 export const DELETE = adminHandler<Params>(async (_request, { id }) => {
-  const ordered = await prisma.orderItem.count({ where: { variant: { productId: id } } });
-  if (ordered > 0) {
-    throw conflict("This product already appears in orders. Deactivate it instead of deleting.");
+  const [ordered, imported] = await Promise.all([
+    prisma.orderItem.count({ where: { variant: { productId: id } } }),
+    prisma.stockImportItem.count({ where: { variant: { productId: id } } }),
+  ]);
+  if (ordered > 0 || imported > 0) {
+    throw conflict("Sản phẩm đã có lịch sử nhập kho/đơn hàng, hãy chuyển sang ẩn");
   }
   await prisma.product.delete({ where: { id } });
   return { id };

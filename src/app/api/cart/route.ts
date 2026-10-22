@@ -5,6 +5,7 @@ import { auth, currentUser } from "@clerk/nextjs/server";
 import { Prisma } from "@/src/generated/prisma/client";
 import { apiError, apiSuccess } from "@/src/lib/api-response";
 import { prisma } from "@/src/lib/db";
+import { getActiveSalePrice } from "@/src/lib/pricing";
 
 /**
  * Lấy Prisma User tương ứng với Clerk User hiện tại.
@@ -179,10 +180,7 @@ export async function GET() {
           product: {
             ...item.variant.product,
             price: Number(item.variant.product.price),
-            salePrice:
-              item.variant.product.salePrice === null
-                ? null
-                : Number(item.variant.product.salePrice),
+            salePrice: getActiveSalePrice(item.variant.product),
           },
         },
       })),

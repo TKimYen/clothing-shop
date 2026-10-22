@@ -2,6 +2,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/src/lib/db";
+import { getEffectivePrice } from "@/src/lib/pricing";
 import {
   calculateCouponDiscount,
   CouponValidationError,
@@ -160,9 +161,7 @@ export async function POST(request: Request) {
 
     let subtotal = 0;
     for (const item of cart.items) {
-      const price =
-        item.variant.product.salePrice ?? item.variant.product.price;
-      subtotal += Number(price) * item.quantity;
+      subtotal += getEffectivePrice(item.variant.product) * item.quantity;
     }
 
     const originalShippingFee =
@@ -283,9 +282,8 @@ export async function POST(request: Request) {
       });
 
       for (const item of cart.items) {
-        const price =
-          item.variant.product.salePrice ?? item.variant.product.price;
-        
+        const price = getEffectivePrice(item.variant.product);
+
         const updated = await tx.productVariant.updateMany({
           where: {
             id: item.variantId,

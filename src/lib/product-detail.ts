@@ -1,4 +1,5 @@
 import { prisma } from "@/src/lib/db";
+import { getActiveSalePrice } from "@/src/lib/pricing";
 
 export async function findProductDetail(slug: string) {
   const product = await prisma.product.findUnique({
@@ -10,6 +11,8 @@ export async function findProductDetail(slug: string) {
       description: true,
       price: true,
       salePrice: true,
+      saleStartsAt: true,
+      saleEndsAt: true,
       images: {
         orderBy: { sortOrder: "asc" },
         select: {
@@ -49,10 +52,12 @@ export async function findProductDetail(slug: string) {
     return null;
   }
 
+  const { saleStartsAt, saleEndsAt, ...rest } = product;
+
   return {
-    ...product,
+    ...rest,
     price: Number(product.price),
-    salePrice: product.salePrice === null ? null : Number(product.salePrice),
+    salePrice: getActiveSalePrice({ ...product, saleStartsAt, saleEndsAt }),
   };
 }
 

@@ -1,5 +1,6 @@
 import { apiError, apiSuccess } from "@/src/lib/api-response";
 import { prisma } from "@/src/lib/db";
+import { getActiveSalePrice } from "@/src/lib/pricing";
 
 const DEFAULT_PAGE_SIZE = 12;
 const MAX_PAGE_SIZE = 50;
@@ -130,6 +131,8 @@ export async function GET(request: Request) {
           description: true,
           price: true,
           salePrice: true,
+          saleStartsAt: true,
+          saleEndsAt: true,
           category: {
             select: {
               id: true,
@@ -154,11 +157,14 @@ export async function GET(request: Request) {
     ]);
 
     return apiSuccess(
-      products.map((product) => ({
+      products.map(({ saleStartsAt, saleEndsAt, ...product }) => ({
         ...product,
         price: Number(product.price),
-        salePrice:
-          product.salePrice === null ? null : Number(product.salePrice),
+        salePrice: getActiveSalePrice({
+          ...product,
+          saleStartsAt,
+          saleEndsAt,
+        }),
       })),
       {
         page,

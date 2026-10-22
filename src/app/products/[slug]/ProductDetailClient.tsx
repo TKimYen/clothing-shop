@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ProductDetail } from "@/src/lib/product-detail";
 
 type ProductDetailClientProps = {
@@ -49,14 +49,52 @@ export default function ProductDetailClient({
   const [addedToCart, setAddedToCart] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
   const [error, setError] = useState("");
+  // Số lượng mỗi biến thể đang có trong giỏ: variantId -> quantity
+  const [cartQuantities, setCartQuantities] = useState<Record<string, number>>(
+    {},
+  );
+
+  const loadCartQuantities = useCallback(async () => {
+    try {
+      const res = await fetch("/api/cart", { cache: "no-store" });
+      if (!res.ok) return; // Chưa đăng nhập: giỏ trống
+      const result = await res.json();
+      if (!result.success || !Array.isArray(result.data)) return;
+      const quantities: Record<string, number> = {};
+      for (const item of result.data as {
+        variantId: string;
+        quantity: number;
+      }[]) {
+        quantities[item.variantId] =
+          (quantities[item.variantId] ?? 0) + item.quantity;
+      }
+      setCartQuantities(quantities);
+    } catch {
+      // Không tải được giỏ thì vẫn cho chọn theo tồn kho, server sẽ chặn
+    }
+  }, []);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- đồng bộ giỏ hàng từ server
+    void loadCartQuantities();
+    window.addEventListener("cart-updated", loadCartQuantities);
+    return () =>
+      window.removeEventListener("cart-updated", loadCartQuantities);
+  }, [loadCartQuantities]);
 
   const selectedVariant = product.variants.find(
     (variant) =>
       variant.color.id === selectedColorId &&
       variant.size.id === selectedSizeId,
   );
-  // Số lượng tối đa được chọn = tồn kho của biến thể đang chọn
-  const maxQuantity = selectedVariant?.stockQuantity ?? 0;
+  const inCartQuantity = selectedVariant
+    ? (cartQuantities[selectedVariant.id] ?? 0)
+    : 0;
+  // Số lượng tối đa được chọn = tồn kho − số đã có trong giỏ
+  const maxQuantity = Math.max(
+    0,
+    (selectedVariant?.stockQuantity ?? 0) - inCartQuantity,
+  );
   const colorImages = product.images.filter(
     (image) => image.colorId === selectedColorId,
   );
@@ -95,11 +133,15 @@ export default function ProductDetailClient({
   };
 
   const handleAddToCart = async () => {
-    if (!selectedVariant || selectedVariant.stockQuantity < 1) return;
+    if (!selectedVariant || maxQuantity < 1) return;
 
     // Chặn ở giao diện trước khi gọi API
-    if (quantity > selectedVariant.stockQuantity) {
-      setError(`Chỉ còn ${selectedVariant.stockQuantity} sản phẩm`);
+    if (quantity > maxQuantity) {
+      setError(
+        maxQuantity === 0
+          ? `Bạn đã có ${inCartQuantity} sản phẩm này trong giỏ, bằng số lượng còn lại`
+          : `Bạn chỉ có thể thêm tối đa ${maxQuantity} sản phẩm (đã có ${inCartQuantity} trong giỏ)`,
+      );
       return;
     }
 
@@ -115,6 +157,7 @@ export default function ProductDetailClient({
 
       if (res.ok && result.success) {
         setAddedToCart(true);
+        setQuantity(1);
         window.dispatchEvent(new Event("cart-updated"));
       } else if (res.status === 401) {
         setError("Vui lòng đăng nhập để thêm vào giỏ hàng");
@@ -274,6 +317,12 @@ export default function ProductDetailClient({
             {selectedVariant && selectedVariant.stockQuantity > 0 ? (
               <span className="font-medium text-green-700">
                 ✓ Còn {selectedVariant.stockQuantity} sản phẩm
+                {inCartQuantity > 0 ? (
+                  <span className="font-normal text-gray-600">
+                    {" "}
+                    (đã có {inCartQuantity} trong giỏ)
+                  </span>
+                ) : null}
               </span>
             ) : (
               <span className="font-medium text-red-600">
@@ -284,9 +333,7 @@ export default function ProductDetailClient({
 
           <button
             type="button"
-            disabled={
-              !selectedVariant || selectedVariant.stockQuantity < 1 || isAdding
-            }
+            disabled={!selectedVariant || maxQuantity < 1 || isAdding}
             onClick={handleAddToCart}
             className="mt-6 w-full rounded-lg bg-[#17579B] px-6 py-3.5 font-semibold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:bg-gray-300"
           >
