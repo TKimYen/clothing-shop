@@ -368,6 +368,11 @@ export default function CheckoutPage() {
       toast.error("Vui lòng chọn địa chỉ nhận hàng");
       return;
     }
+
+    // Lấy danh sách ID sản phẩm khách đã tick chọn để bảo toàn món B trong giỏ hàng
+    const savedIds = sessionStorage.getItem("checkoutItemIds");
+    const selectedCartItemIds = savedIds ? JSON.parse(savedIds) : cartItems.map(i => i.id);
+
     try {
       setIsSubmitting(true);
       const res = await fetch("/api/orders", {
@@ -378,6 +383,7 @@ export default function CheckoutPage() {
           paymentMethod: paymentType === "COD" ? "COD" : "BANK_TRANSFER",
           productCouponCode: appliedProductCoupon,
           shippingCouponCode: appliedShipCoupon,
+          selectedCartItemIds, // Truyền danh sách ID món A được chọn lên API
         }),
       });
 
@@ -385,7 +391,6 @@ export default function CheckoutPage() {
       if (result.success) {
         toast.success("Đặt hàng thành công");
         sessionStorage.removeItem("checkoutItemIds");
-        // Đơn chuyển khoản hiển thị mã QR thanh toán tại trang đơn hàng
         router.push("/orders");
       } else {
         toast.error(result.error?.message || "Không thể đặt hàng");
@@ -439,9 +444,7 @@ export default function CheckoutPage() {
         onSubmit={handlePlaceOrder}
         className="grid grid-cols-1 md:grid-cols-3 gap-6"
       >
-        {/* Cột trái: Địa chỉ, Kiểm tra sản phẩm được chọn, Phương thức thanh toán */}
         <div className="md:col-span-2 space-y-6">
-          {/* 1. Địa chỉ nhận hàng */}
           <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-xs">
             <div className="flex justify-between items-center mb-3">
               <h2 className="font-bold text-gray-800 text-sm flex items-center gap-2">
@@ -493,7 +496,6 @@ export default function CheckoutPage() {
             )}
           </div>
 
-          {/* 2. Kiểm tra sản phẩm được chọn thanh toán */}
           <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-xs">
             <h2 className="font-bold text-gray-800 text-sm flex items-center gap-2 mb-3 pb-2 border-b">
               <ShoppingBag size={16} className="text-[#164F8D]" />
@@ -543,7 +545,6 @@ export default function CheckoutPage() {
             </div>
           </div>
 
-          {/* 3. Phương thức thanh toán & Chọn tài khoản ví/ngân hàng */}
           <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-xs space-y-3">
             <h2 className="font-bold text-gray-800 text-sm flex items-center gap-2 pb-2 border-b">
               <CreditCard size={16} className="text-[#164F8D]" />
@@ -656,14 +657,12 @@ export default function CheckoutPage() {
           </div>
         </div>
 
-        {/* Cột phải: Mã ưu đãi & Tổng tiền & Nút Đặt hàng */}
         <div className="space-y-6">
           <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-xs space-y-4">
             <h2 className="font-bold text-gray-800 text-sm border-b pb-3">
               Mã ưu đãi
             </h2>
 
-            {/* Mã giảm giá sản phẩm */}
             <div className="space-y-1.5">
               <label className="text-[11px] font-semibold text-gray-600 flex items-center gap-1">
                 <Ticket size={13} className="text-[#164F8D]" /> Mã giảm giá sản
@@ -702,7 +701,6 @@ export default function CheckoutPage() {
               )}
             </div>
 
-            {/* Mã miễn phí vận chuyển */}
             <div className="space-y-1.5 pt-2 border-t border-gray-100">
               <label className="text-[11px] font-semibold text-gray-600 flex items-center gap-1">
                 <Truck size={13} className="text-[#164F8D]" /> Mã miễn phí vận
@@ -736,7 +734,6 @@ export default function CheckoutPage() {
               />
             </div>
 
-            {/* Tổng tiền đơn hàng */}
             <div className="space-y-2 text-xs pt-4 border-t text-gray-600">
               <div className="flex justify-between">
                 <span>Tạm tính:</span>

@@ -81,7 +81,7 @@ export async function GET() {
   }
 }
 
-// 2. Tạo đơn hàng mới từ giỏ hàng
+// 2. Tạo đơn hàng mới từ các sản phẩm được chọn trong giỏ hàng
 export async function POST(request: Request) {
   try {
     const { userId: clerkId } = await auth();
@@ -110,6 +110,7 @@ export async function POST(request: Request) {
       productCouponCode,
       shippingCouponCode,
       note,
+      selectedCartItemIds, // Nhận danh sách ID các sản phẩm khách tick chọn thanh toán
     } = body;
     const couponPaymentMethod =
       paymentMethod === "BANK_TRANSFER" ? "BANK_TRANSFER" : "COD";
@@ -159,8 +160,21 @@ export async function POST(request: Request) {
       );
     }
 
+    // Lọc ra đúng các sản phẩm thực sự được chọn thanh toán (Món A), giữ lại món B
+    let checkoutItems = cart.items;
+    if (Array.isArray(selectedCartItemIds) && selectedCartItemIds.length > 0) {
+      checkoutItems = cart.items.filter((item) => selectedCartItemIds.includes(item.id));
+    }
+
+    if (checkoutItems.length === 0) {
+      return NextResponse.json(
+        { success: false, error: { message: "Chưa có sản phẩm nào được chọn để thanh toán" } },
+        { status: 400 },
+      );
+    }
+
     let subtotal = 0;
-    for (const item of cart.items) {
+    for (const item of checkoutItems) {
       subtotal += getEffectivePrice(item.variant.product) * item.quantity;
     }
 
@@ -281,7 +295,7 @@ export async function POST(request: Request) {
         },
       });
 
-      for (const item of cart.items) {
+      for (const item of checkoutItems) {
         const price = getEffectivePrice(item.variant.product);
 
         const updated = await tx.productVariant.updateMany({
@@ -328,8 +342,13 @@ export async function POST(request: Request) {
         },
       });
 
+      // CHỈ XÓA CÁC SẢN PHẨM ĐÃ ĐƯỢC CHỌN THANH TOÁN (MÓN A), BẢO TOÀN CÁC MÓN KHÁC (MÓN B)
+      const purchasedCartItemIds = checkoutItems.map((item) => item.id);
       await tx.cartItem.deleteMany({
-        where: { cartId: cart.id },
+        where: {
+          cartId: cart.id,
+          id: { in: purchasedCartItemIds },
+        },
       });
 
       return newOrder;
