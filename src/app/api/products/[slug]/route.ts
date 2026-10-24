@@ -1,3 +1,4 @@
+// src/app/api/products/[slug]/route.ts
 import { apiError, apiSuccess } from "@/src/lib/api-response";
 import { findProductDetail } from "@/src/lib/product-detail";
 

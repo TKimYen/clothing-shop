@@ -46,22 +46,10 @@ export default function Footer() {
 
                 {/* Newsletter & Payment Methods */}
                 <div>
-                    <h4 className="font-semibold mb-4 text-lg">Đăng ký nhận tin</h4>
-                    <p className="text-sm text-gray-300 mb-4">Nhận thông tin khuyến mãi và sản phẩm mới nhất</p>
-                    <form className="flex mb-6" onSubmit={(event) => event.preventDefault()}>
-                        <input
-                            type="email"
-                            placeholder="Nhập email của bạn"
-                            className="bg-white/10 border border-white/20 text-white px-4 py-2 rounded-l-md w-full focus:outline-none focus:border-white text-sm"
-                        />
-                        <button type="submit" aria-label="Đăng ký nhận tin" className="bg-white text-[#17579B] px-4 py-2 rounded-r-md font-medium hover:bg-gray-100">
-                            →
-                        </button>
-                    </form>
+                    <h4 className="font-semibold mb-4 text-lg">Phương thức thanh toán</h4>
 
                     {/* Phần thêm ảnh thanh toán (payment.png) */}
                     <div>
-                        <p className="text-xs text-gray-300 mb-2">Phương thức thanh toán</p>
                         <div className="relative w-48 h-8">
                             <Image
                                 src="/images/payment.png"

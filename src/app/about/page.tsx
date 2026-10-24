@@ -22,7 +22,7 @@ export default function AboutPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center mb-16">
         <div className="relative rounded-2xl overflow-hidden bg-gray-100 aspect-[4/3] shadow-sm">
           <Image
-            src="/images/t_shirt_1.png" 
+            src="/images/about_banner.png" 
             alt="BlueWear Studio" 
             fill
             sizes="(max-width: 768px) 100vw, 50vw"
