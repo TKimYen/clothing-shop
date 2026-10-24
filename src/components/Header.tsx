@@ -3,15 +3,23 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Search, ShoppingCart } from 'lucide-react';
+import { Menu, Search, ShoppingCart, X } from 'lucide-react';
 import { FormEvent, useState, useEffect } from 'react';
 import AuthButtons from "../components/AuthButtons";
+
+type HeaderCollection = {
+    id: string;
+    name: string;
+    slug: string;
+};
 
 export default function Header() {
     const pathname = usePathname();
     const router = useRouter();
     const [searchKeyword, setSearchKeyword] = useState('');
     const [cartCount, setCartCount] = useState(0);
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [collections, setCollections] = useState<HeaderCollection[]>([]);
 
     // Lấy số lượng sản phẩm trong giỏ hàng từ API để hiển thị huy hiệu động
     useEffect(() => {
@@ -40,6 +48,42 @@ export default function Header() {
             window.removeEventListener('cart-updated', handleCartUpdated);
         };
     }, [pathname]); // Cập nhật lại mỗi khi đổi trang
+
+    useEffect(() => {
+        let isActive = true;
+
+        fetch('/api/collections', { cache: 'no-store' })
+            .then(async (response) => {
+                const result = await response.json() as {
+                    success: boolean;
+                    data?: HeaderCollection[];
+                };
+                if (!response.ok || !result.success) {
+                    throw new Error('Không thể tải danh sách bộ sưu tập');
+                }
+                if (isActive) setCollections(result.data ?? []);
+            })
+            .catch((error: unknown) => {
+                console.error('Không thể tải menu bộ sưu tập:', error);
+            });
+
+        return () => {
+            isActive = false;
+        };
+    }, []);
+
+    useEffect(() => {
+        if (!isMobileMenuOpen) return;
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') setIsMobileMenuOpen(false);
+        };
+        document.addEventListener('keydown', onKeyDown);
+        document.body.style.overflow = 'hidden';
+        return () => {
+            document.removeEventListener('keydown', onKeyDown);
+            document.body.style.overflow = '';
+        };
+    }, [isMobileMenuOpen]);
 
     const handleSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -95,15 +139,30 @@ export default function Header() {
                             Sản phẩm
                         </Link>
 
-                        <Link
+                        <div className="group relative">
+                            <Link
                             href="/collections"
-                            className={`pb-1 transition-colors ${pathname === '/collections'
+                            className={`inline-block pb-1 transition-colors ${pathname.startsWith('/collections')
                                 ? 'text-[#164F8D] font-semibold border-b-2 border-[#164F8D]'
                                 : 'hover:text-[#164F8D]'
                                 }`}
-                        >
-                            Bộ sưu tập
-                        </Link>
+                            >
+                                Bộ sưu tập
+                            </Link>
+                            {collections.length > 0 ? (
+                                <div className="invisible absolute left-1/2 top-full z-50 w-64 -translate-x-1/2 translate-y-2 rounded-xl border border-gray-100 bg-white p-2 opacity-0 shadow-xl transition-all group-hover:visible group-hover:translate-y-0 group-hover:opacity-100">
+                                    {collections.map((collection) => (
+                                        <Link
+                                            key={collection.id}
+                                            href={`/collections/${collection.slug}`}
+                                            className="block rounded-lg px-3 py-2.5 text-sm text-gray-700 transition-colors hover:bg-gray-50 hover:text-black"
+                                        >
+                                            {collection.name}
+                                        </Link>
+                                    ))}
+                                </div>
+                            ) : null}
+                        </div>
 
                         <Link
                             href="/about"
@@ -153,8 +212,64 @@ export default function Header() {
                                 </span>
                             )}
                         </Link>
+                        <button
+                            type="button"
+                            aria-label={isMobileMenuOpen ? 'Đóng menu' : 'Mở menu'}
+                            aria-expanded={isMobileMenuOpen}
+                            onClick={() => setIsMobileMenuOpen((open) => !open)}
+                            className="grid size-10 place-items-center rounded-full text-[#164F8D] hover:bg-gray-100 lg:hidden"
+                        >
+                            {isMobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
+                        </button>
                     </div>
                 </div>
+                {isMobileMenuOpen && (
+                    <div className="border-t border-gray-100 bg-white px-4 py-4 shadow-lg lg:hidden">
+                        <form onSubmit={handleSearchSubmit} className="relative mb-4">
+                            <input
+                                type="text"
+                                value={searchKeyword}
+                                onChange={(event) => setSearchKeyword(event.target.value)}
+                                placeholder="Tìm kiếm sản phẩm..."
+                                aria-label="Tìm kiếm sản phẩm"
+                                className="w-full rounded-full border border-[#17579B] bg-white px-4 py-2 pr-10 text-sm text-gray-700 outline-none focus:ring-2 focus:ring-[#dbeafe]"
+                            />
+                            <button type="submit" aria-label="Tìm kiếm" className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">
+                                <Search size={18} />
+                            </button>
+                        </form>
+                        <nav aria-label="Điều hướng mobile" className="grid gap-1 text-sm font-medium text-gray-700">
+                            {[
+                                ['/', 'Trang chủ'],
+                                ['/products', 'Sản phẩm'],
+                                ['/collections', 'Bộ sưu tập'],
+                                ['/about', 'Giới thiệu'],
+                                ['/contact', 'Liên hệ'],
+                            ].map(([href, label]) => (
+                                <Link key={href} href={href} onClick={() => setIsMobileMenuOpen(false)} className="rounded-lg px-3 py-3 hover:bg-gray-50">
+                                    {label}
+                                </Link>
+                            ))}
+                            {collections.length > 0 ? (
+                                <div className="ml-3 grid gap-1 border-l border-gray-200 pl-3">
+                                    {collections.map((collection) => (
+                                        <Link
+                                            key={collection.id}
+                                            href={`/collections/${collection.slug}`}
+                                            onClick={() => setIsMobileMenuOpen(false)}
+                                            className="rounded-lg px-3 py-2 text-sm font-normal text-gray-500 hover:bg-gray-50 hover:text-black"
+                                        >
+                                            {collection.name}
+                                        </Link>
+                                    ))}
+                                </div>
+                            ) : null}
+                        </nav>
+                        <div className="mt-3 border-t border-gray-100 pt-3 text-sm text-gray-700">
+                            <AuthButtons />
+                        </div>
+                    </div>
+                )}
             </div>
         </header>
     );

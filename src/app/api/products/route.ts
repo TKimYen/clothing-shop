@@ -1,5 +1,6 @@
 import { apiError, apiSuccess } from "@/src/lib/api-response";
 import { prisma } from "@/src/lib/db";
+import { getActiveSalePrice, getEffectivePrice } from "@/src/lib/pricing";
 
 const DEFAULT_PAGE_SIZE = 12;
 const MAX_PAGE_SIZE = 50;
@@ -34,11 +35,51 @@ function getFilterValue(
   return undefined;
 }
 
+function normalizeSearchText(value: string) {
+  return value
+    .toLocaleLowerCase("vi-VN")
+    .replace(/đ/g, "d")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .replace(/\s+/g, " ");
+}
+
+function getSearchScore(
+  product: { name: string; description: string | null },
+  search: string,
+) {
+  const normalizedSearch = normalizeSearchText(search);
+  if (!normalizedSearch) return 0;
+
+  const normalizedName = normalizeSearchText(product.name);
+  const normalizedDescription = normalizeSearchText(product.description ?? "");
+  const searchTokens = normalizedSearch.split(" ");
+  const nameTokens = new Set(normalizedName.split(" "));
+  const descriptionTokens = new Set(normalizedDescription.split(" "));
+  const matchedNameTokens = searchTokens.filter((token) => nameTokens.has(token));
+  const matchedDescriptionTokens = searchTokens.filter((token) =>
+    descriptionTokens.has(token),
+  );
+  const hasAllNameTokens = matchedNameTokens.length === searchTokens.length;
+
+  return (
+    (normalizedName === normalizedSearch ? 100_000 : 0) +
+    (normalizedName.includes(normalizedSearch) ? 50_000 : 0) +
+    (hasAllNameTokens ? 25_000 : 0) +
+    matchedNameTokens.length * 5_000 +
+    (normalizedDescription.includes(normalizedSearch) ? 2_000 : 0) +
+    matchedDescriptionTokens.length * 500
+  );
+}
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const search = getFilterValue(searchParams, "search", "q");
     const category = getFilterValue(searchParams, "category", "categoryId");
+    const color = getFilterValue(searchParams, "color", "colorId");
     const collection = getFilterValue(
       searchParams,
       "collection",
@@ -68,7 +109,7 @@ export async function GET(request: Request) {
       throw new Error(`sort must be one of: ${SORT_VALUES.join(", ")}`);
     }
 
-    const priceFilter =
+    const priceRange =
       minPrice !== undefined || maxPrice !== undefined
         ? {
             ...(minPrice !== undefined ? { gte: minPrice } : {}),
@@ -76,26 +117,40 @@ export async function GET(request: Request) {
           }
         : undefined;
 
+    // Lọc theo giá thực tế: giá sale nếu đang trong đợt khuyến mãi, ngược lại giá gốc
+    const now = new Date();
+    const saleIsActive = {
+      salePrice: { not: null },
+      OR: [{ saleStartsAt: null }, { saleStartsAt: { lte: now } }],
+      AND: [{ OR: [{ saleEndsAt: null }, { saleEndsAt: { gte: now } }] }],
+    };
+    const effectivePriceFilter = priceRange
+      ? {
+          OR: [
+            { AND: [saleIsActive, { salePrice: priceRange }] },
+            { NOT: saleIsActive, price: priceRange },
+          ],
+        }
+      : undefined;
+
     const where = {
       isActive: true,
-      ...(search
-        ? {
-            OR: [
-              { name: { contains: search, mode: "insensitive" as const } },
-              {
-                description: {
-                  contains: search,
-                  mode: "insensitive" as const,
-                },
-              },
-            ],
-          }
-        : {}),
-      ...(priceFilter ? { price: priceFilter } : {}),
+      ...(effectivePriceFilter ? { AND: [effectivePriceFilter] } : {}),
       ...(category
         ? {
             category: {
               OR: [{ id: category }, { slug: category }],
+            },
+          }
+        : {}),
+      ...(color
+        ? {
+            variants: {
+              some: {
+                color: {
+                  OR: [{ id: color }, { name: color }],
+                },
+              },
             },
           }
         : {}),
@@ -117,12 +172,23 @@ export async function GET(request: Request) {
             ? { name: "asc" as const }
             : { createdAt: "desc" as const };
 
-    const [products, total] = await Promise.all([
+    const shouldSortByEffectivePrice = sort === "price_asc" || sort === "price_desc";
+    const shouldRankSearchResults = Boolean(search);
+    const searchTerm = search ?? "";
+    const shouldLoadAllProducts =
+      shouldRankSearchResults || shouldSortByEffectivePrice;
+    const [allProducts, total] = await Promise.all([
       prisma.product.findMany({
         where,
-        orderBy,
-        skip: (page - 1) * requestedLimit,
-        take: requestedLimit,
+        orderBy: shouldSortByEffectivePrice
+          ? { createdAt: "desc" }
+          : orderBy,
+        ...(shouldLoadAllProducts
+          ? {}
+          : {
+              skip: (page - 1) * requestedLimit,
+              take: requestedLimit,
+            }),
         select: {
           id: true,
           name: true,
@@ -130,6 +196,9 @@ export async function GET(request: Request) {
           description: true,
           price: true,
           salePrice: true,
+          saleStartsAt: true,
+          saleEndsAt: true,
+          createdAt: true,
           category: {
             select: {
               id: true,
@@ -139,7 +208,7 @@ export async function GET(request: Request) {
           },
           images: {
             orderBy: { sortOrder: "asc" },
-            take: 1,
+            take: 2,
             select: {
               id: true,
               url: true,
@@ -148,17 +217,71 @@ export async function GET(request: Request) {
               colorId: true,
             },
           },
+          variants: {
+            orderBy: { size: { sortOrder: "asc" } },
+            select: {
+              id: true,
+              sku: true,
+              stockQuantity: true,
+              size: {
+                select: {
+                  id: true,
+                  label: true,
+                  sortOrder: true,
+                },
+              },
+              color: {
+                select: {
+                  id: true,
+                  name: true,
+                  hexCode: true,
+                },
+              },
+            },
+          },
         },
       }),
       prisma.product.count({ where }),
     ]);
 
+    const sortedProducts = shouldRankSearchResults
+      ? [...allProducts].sort((a, b) => {
+          const scoreDifference =
+            getSearchScore(b, searchTerm) - getSearchScore(a, searchTerm);
+          if (scoreDifference !== 0) return scoreDifference;
+
+          if (shouldSortByEffectivePrice) {
+            const priceDifference =
+              getEffectivePrice(a, now) - getEffectivePrice(b, now);
+            return sort === "price_asc" ? priceDifference : -priceDifference;
+          }
+
+          return 0;
+        })
+      : shouldSortByEffectivePrice
+        ? [...allProducts].sort((a, b) => {
+            const aPrice = getEffectivePrice(a, now);
+            const bPrice = getEffectivePrice(b, now);
+            return sort === "price_asc" ? aPrice - bPrice : bPrice - aPrice;
+          })
+        : allProducts;
+    const products = shouldLoadAllProducts
+      ? sortedProducts.slice((page - 1) * requestedLimit, page * requestedLimit)
+      : sortedProducts;
+
     return apiSuccess(
-      products.map((product) => ({
+      products.map(({ saleStartsAt, saleEndsAt, createdAt, ...product }) => ({
         ...product,
+        badge:
+          createdAt.getTime() >= now.getTime() - 1000 * 60 * 60 * 24 * 30
+            ? "Mới"
+            : "Bán chạy",
         price: Number(product.price),
-        salePrice:
-          product.salePrice === null ? null : Number(product.salePrice),
+        salePrice: getActiveSalePrice({
+          ...product,
+          saleStartsAt,
+          saleEndsAt,
+        }),
       })),
       {
         page,

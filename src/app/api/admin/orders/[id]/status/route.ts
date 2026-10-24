@@ -14,30 +14,49 @@ type Params = { id: string };
  */
 export const PATCH = adminHandler<Params>(async (request, { id }) => {
   const { status } = await readJson(request, orderStatusInput);
-  const current = await prisma.order.findUnique({
-    where: { id },
-    select: { status: true, payment: { select: { method: true, status: true } } },
-  });
-  if (!current) throw notFound("Order not found");
-  if (current.status === status) throw badRequest(`Order is already ${status}`);
-  if (!isValidStatusTransition(current.status, status)) {
-    throw badRequest(`Cannot move an order from ${current.status} to ${status}`, {
-      status: "Transition not allowed",
+  const row = await prisma.$transaction(async (tx) => {
+    const current = await tx.order.findUnique({
+      where: { id },
+      select: {
+        status: true,
+        payment: { select: { method: true, status: true } },
+        items: { select: { variantId: true, quantity: true } },
+      },
     });
-  }
+    if (!current) throw notFound("Order not found");
+    if (current.status === status) throw badRequest(`Order is already ${status}`);
+    if (!isValidStatusTransition(current.status, status)) {
+      throw badRequest(`Cannot move an order from ${current.status} to ${status}`, {
+        status: "Transition not allowed",
+      });
+    }
 
-  const markCodPaid =
-    status === "DELIVERED" && current.payment?.method === "COD" && current.payment.status === "UNPAID";
+    const markCodPaid =
+      status === "DELIVERED" &&
+      current.payment?.method === "COD" &&
+      current.payment.status === "UNPAID";
 
-  const row = await prisma.order.update({
-    where: { id },
-    data: {
-      status,
-      ...(markCodPaid
-        ? { payment: { update: { status: "PAID", paidAt: new Date() } } }
-        : {}),
-    },
-    include: orderInclude,
+    const updatedOrder = await tx.order.update({
+      where: { id },
+      data: {
+        status,
+        ...(markCodPaid
+          ? { payment: { update: { status: "PAID", paidAt: new Date() } } }
+          : {}),
+      },
+      include: orderInclude,
+    });
+
+    if (status === "CANCELLED" && current.status !== "CANCELLED") {
+      for (const item of current.items) {
+        await tx.productVariant.update({
+          where: { id: item.variantId },
+          data: { stockQuantity: { increment: item.quantity } },
+        });
+      }
+    }
+
+    return updatedOrder;
   });
   return mapOrder(row);
 });

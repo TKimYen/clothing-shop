@@ -1,11 +1,29 @@
+
 import path from "node:path";
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "images.unsplash.com",
+        pathname: "/**",
+      },
+    ],
+  },
+
+  async rewrites() {
+    return [
+      {
+        source: "/collections/:slug",
+        destination: "/products?collection=:slug",
+      },
+    ];
+  },
+
   turbopack: {
-    // The parent folder (Clothing-Online/) has its own package.json +
-    // package-lock.json (only for the Prisma CLI skills), which made Next
-    // guess the wrong workspace root. Pin the root to this app.
+    // Pin the root to this app.
     root: path.join(__dirname),
   },
 };

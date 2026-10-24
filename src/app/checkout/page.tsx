@@ -12,7 +12,12 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { bankTransferInfo, hasBankTransferInfo } from "@/src/lib/payment-config";
+import {
+  bankTransferInfo,
+  hasBankTransferInfo,
+} from "@/src/lib/payment-config";
+import Image from "next/image";
+import { toast } from "sonner";
 
 type CouponOption = {
   id: string;
@@ -53,8 +58,7 @@ function CouponList({
   return (
     <div className="space-y-1 pt-1">
       {sortedOptions.map((coupon) => {
-        const isSelected =
-          selectedCodeNormalized === coupon.code.toUpperCase();
+        const isSelected = selectedCodeNormalized === coupon.code.toUpperCase();
 
         return (
           <button
@@ -199,12 +203,21 @@ export default function CheckoutPage() {
         if (defPay) setSelectedPaymentId(defPay.id);
       }
 
-      // 3. Lấy sản phẩm từ giỏ hàng (DB) - Bóc tách chuẩn từ cartData.data
+      // 3. Lấy sản phẩm từ giỏ hàng và lọc theo các ID đã tick chọn ở trang Cart
       const cartRes = await fetch("/api/cart", { cache: "no-store" });
       const cartData = await cartRes.json();
 
       if (cartData.success && Array.isArray(cartData.data)) {
-        setCartItems(cartData.data);
+        const savedIds = sessionStorage.getItem("checkoutItemIds");
+        if (savedIds) {
+          const selectedIds: string[] = JSON.parse(savedIds);
+          const filtered = cartData.data.filter((item: CartItem) =>
+            selectedIds.includes(item.id),
+          );
+          setCartItems(filtered);
+        } else {
+          setCartItems(cartData.data);
+        }
       }
     } finally {
       setLoading(false);
@@ -217,7 +230,7 @@ export default function CheckoutPage() {
     );
   }, []);
 
-  // Tính tiền từ giỏ hàng
+  // Tính tiền từ các sản phẩm được chọn
   const subtotal = cartItems.reduce((acc, item) => {
     const price =
       item.variant?.product?.salePrice ?? item.variant?.product?.price ?? 0;
@@ -230,7 +243,8 @@ export default function CheckoutPage() {
     0,
     subtotal + finalShippingFee - productDiscount,
   );
-  const couponPaymentMethod = paymentType === "ONLINE" ? "BANK_TRANSFER" : "COD";
+  const couponPaymentMethod =
+    paymentType === "ONLINE" ? "BANK_TRANSFER" : "COD";
 
   useEffect(() => {
     if (subtotal <= 0) return;
@@ -247,27 +261,38 @@ export default function CheckoutPage() {
       fetch(`/api/coupons/available?${shippingParams}`).then(readJsonResponse),
     ])
       .then(([productResult, shippingResult]) => {
-        const productCoupons = productResult.success && Array.isArray(productResult.data)
-          ? productResult.data
-          : [];
-        const shippingCoupons = shippingResult.success && Array.isArray(shippingResult.data)
-          ? shippingResult.data
-          : [];
+        const productCoupons =
+          productResult.success && Array.isArray(productResult.data)
+            ? productResult.data
+            : [];
+        const shippingCoupons =
+          shippingResult.success && Array.isArray(shippingResult.data)
+            ? shippingResult.data
+            : [];
         setCouponOptions([...productCoupons, ...shippingCoupons]);
       })
       .catch((error) => console.error("Lỗi tải danh sách coupon:", error));
   }, [subtotal, originalShippingFee, couponPaymentMethod]);
 
-  const productOptions = couponOptions.filter((coupon) => coupon.scope === "PRODUCT");
-  const shippingOptions = couponOptions.filter((coupon) => coupon.scope === "SHIPPING");
+  const productOptions = couponOptions.filter(
+    (coupon) => coupon.scope === "PRODUCT",
+  );
+  const shippingOptions = couponOptions.filter(
+    (coupon) => coupon.scope === "SHIPPING",
+  );
   const couponConflict =
     productCoupon.trim() !== "" &&
     shipCoupon.trim() !== "" &&
     productCoupon.trim().toUpperCase() === shipCoupon.trim().toUpperCase();
 
   function ensureCouponIsNotDuplicated(code: string, otherCode: string) {
-    if (code.trim().toUpperCase() === otherCode.trim().toUpperCase() && code.trim()) {
-      throw new Error("Không thể dùng cùng một mã cho giảm giá sản phẩm và vận chuyển");
+    if (
+      code.trim().toUpperCase() === otherCode.trim().toUpperCase() &&
+      code.trim()
+    ) {
+      throw new Error(
+        "Không thể dùng cùng một mã cho giảm giá sản phẩm và vận chuyển",
+      );
     }
   }
 
@@ -291,11 +316,13 @@ export default function CheckoutPage() {
       }
       setProductDiscount(Number(result.data.discount));
       setAppliedProductCoupon(result.data.code);
-      alert(`Đã giảm ${Number(result.data.discount).toLocaleString("vi-VN")}đ`);
+      toast.success(`Đã giảm ${Number(result.data.discount).toLocaleString("vi-VN")}đ`);
     } catch (error) {
       setProductDiscount(0);
       setAppliedProductCoupon("");
-      alert(error instanceof Error ? error.message : "Mã giảm giá không hợp lệ");
+      toast.error(
+        error instanceof Error ? error.message : "Mã giảm giá không hợp lệ",
+      );
     }
   }
 
@@ -319,22 +346,27 @@ export default function CheckoutPage() {
       }
       setShipDiscount(Number(result.data.discount));
       setAppliedShipCoupon(result.data.code);
-      alert(`Đã giảm ${Number(result.data.discount).toLocaleString("vi-VN")}đ phí vận chuyển`);
+      toast.success(
+        `Đã giảm ${Number(result.data.discount).toLocaleString("vi-VN")}đ phí vận chuyển`,
+      );
     } catch (error) {
       setShipDiscount(0);
       setAppliedShipCoupon("");
-      alert(error instanceof Error ? error.message : "Mã vận chuyển không hợp lệ");
+      toast.error(
+        error instanceof Error ? error.message : "Mã vận chuyển không hợp lệ",
+      );
     }
   }
 
   async function handlePlaceOrder(e: FormEvent) {
     e.preventDefault();
-    if (cartItems.length === 0) {
-      alert("Giỏ hàng của bạn đang trống, không thể thanh toán!");
+    const checkoutItemIds = cartItems.map((item) => item.id);
+    if (checkoutItemIds.length === 0) {
+      toast.error("Không có sản phẩm nào được chọn thanh toán");
       return;
     }
     if (!selectedAddressId) {
-      alert("Vui lòng chọn địa chỉ nhận hàng");
+      toast.error("Vui lòng chọn địa chỉ nhận hàng");
       return;
     }
     try {
@@ -347,19 +379,22 @@ export default function CheckoutPage() {
           paymentMethod: paymentType === "COD" ? "COD" : "BANK_TRANSFER",
           productCouponCode: appliedProductCoupon,
           shippingCouponCode: appliedShipCoupon,
+          itemIds: checkoutItemIds,
         }),
       });
 
       const result = await res.json();
       if (result.success) {
-        alert("Đặt hàng thành công!");
+        toast.success("Đặt hàng thành công");
+        sessionStorage.removeItem("checkoutItemIds");
+        // Đơn chuyển khoản hiển thị mã QR thanh toán tại trang đơn hàng
         router.push("/orders");
       } else {
-        alert(result.error?.message || "Không thể đặt hàng");
+        toast.error(result.error?.message || "Không thể đặt hàng");
       }
     } catch (error) {
       console.error("Lỗi đặt hàng:", error);
-      alert("Lỗi kết nối máy chủ");
+      toast.error("Lỗi kết nối máy chủ");
     } finally {
       setIsSubmitting(false);
     }
@@ -378,26 +413,26 @@ export default function CheckoutPage() {
 
   if (cartItems.length === 0) {
     return (
-      <main className="container mx-auto px-4 py-16 max-w-lg text-center bg-white rounded-2xl border border-gray-100 shadow-xs mt-10">
+      <div className="container mx-auto px-4 py-16 max-w-lg text-center bg-white rounded-2xl border border-gray-100 shadow-xs mt-10">
         <ShoppingBag size={48} className="mx-auto text-gray-300 mb-3" />
         <h2 className="text-lg font-bold text-gray-800">
-          Giỏ hàng của bạn đang trống
+          Chưa có sản phẩm nào được chọn
         </h2>
         <p className="text-xs text-gray-500 mt-1 mb-6">
-          Bạn cần thêm sản phẩm vào giỏ hàng trước khi tiến hành thanh toán.
+          Vui lòng quay lại giỏ hàng và tick chọn sản phẩm cần thanh toán.
         </p>
         <Link
-          href="/products"
+          href="/cart"
           className="bg-[#164F8D] hover:bg-[#123d6d] text-white text-xs px-6 py-2.5 rounded-xl font-semibold transition-colors"
         >
-          Quay lại mua sắm
+          Quay lại giỏ hàng
         </Link>
-      </main>
+      </div>
     );
   }
 
   return (
-    <main className="container mx-auto px-4 py-8 max-w-5xl">
+    <div className="container mx-auto px-4 py-8 max-w-5xl">
       <h1 className="text-2xl font-bold text-[#164F8D] mb-6">
         Tiến hành thanh toán
       </h1>
@@ -406,7 +441,7 @@ export default function CheckoutPage() {
         onSubmit={handlePlaceOrder}
         className="grid grid-cols-1 md:grid-cols-3 gap-6"
       >
-        {/* Cột trái: Địa chỉ, Kiểm tra sản phẩm từ giỏ hàng, Phương thức thanh toán */}
+        {/* Cột trái: Địa chỉ, Kiểm tra sản phẩm được chọn, Phương thức thanh toán */}
         <div className="md:col-span-2 space-y-6">
           {/* 1. Địa chỉ nhận hàng */}
           <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-xs">
@@ -460,11 +495,11 @@ export default function CheckoutPage() {
             )}
           </div>
 
-          {/* 2. Kiểm tra sản phẩm trong giỏ hàng */}
+          {/* 2. Kiểm tra sản phẩm được chọn thanh toán */}
           <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-xs">
             <h2 className="font-bold text-gray-800 text-sm flex items-center gap-2 mb-3 pb-2 border-b">
               <ShoppingBag size={16} className="text-[#164F8D]" />
-              Kiểm tra sản phẩm ({cartItems.length})
+              Sản phẩm thanh toán ({cartItems.length})
             </h2>
 
             <div className="space-y-3 divide-y divide-gray-100">
@@ -479,10 +514,13 @@ export default function CheckoutPage() {
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 rounded-lg bg-gray-100 overflow-hidden shrink-0 border relative">
-                        <img
+                        <Image
                           src={product.images?.[0]?.url || "/placeholder.png"}
                           alt={product.name}
-                          className="w-full h-full object-cover"
+                          fill
+                          sizes="48px"
+                          unoptimized
+                          className="object-cover"
                         />
                       </div>
                       <div>
@@ -561,7 +599,8 @@ export default function CheckoutPage() {
                           <p>
                             Số tài khoản:{" "}
                             <span className="font-semibold">
-                              {bankTransferInfo.accountNumber || "Chưa cấu hình"}
+                              {bankTransferInfo.accountNumber ||
+                                "Chưa cấu hình"}
                             </span>
                           </p>
                           <p>
@@ -619,7 +658,7 @@ export default function CheckoutPage() {
           </div>
         </div>
 
-        {/* Cột phải: Mã ưu đãi tách riêng & Tổng tiền & Nút Đặt hàng */}
+        {/* Cột phải: Mã ưu đãi & Tổng tiền & Nút Đặt hàng */}
         <div className="space-y-6">
           <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-xs space-y-4">
             <h2 className="font-bold text-gray-800 text-sm border-b pb-3">
@@ -746,6 +785,6 @@ export default function CheckoutPage() {
           </div>
         </div>
       </form>
-    </main>
+    </div>
   );
 }
