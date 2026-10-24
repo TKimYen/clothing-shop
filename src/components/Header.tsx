@@ -174,12 +174,6 @@ export default function Header() {
                             Giới thiệu
                         </Link>
 
-                        <Link
-                            href="/contact"
-                            className="hover:text-[#164F8D]"
-                        >
-                            Liên hệ
-                        </Link>
                     </nav>
 
                     <div className="flex items-center gap-4 ml-auto">
@@ -244,7 +238,6 @@ export default function Header() {
                                 ['/products', 'Sản phẩm'],
                                 ['/collections', 'Bộ sưu tập'],
                                 ['/about', 'Giới thiệu'],
-                                ['/contact', 'Liên hệ'],
                             ].map(([href, label]) => (
                                 <Link key={href} href={href} onClick={() => setIsMobileMenuOpen(false)} className="rounded-lg px-3 py-3 hover:bg-gray-50">
                                     {label}
