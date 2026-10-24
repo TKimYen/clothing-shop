@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import * as React from "react";
+import { Toaster } from "@/src/components/ui";
 
 /**
  * Renders the storefront header/footer everywhere except the admin area,
@@ -26,6 +27,7 @@ export default function SiteChrome({
       {header}
       <main className="flex-grow">{children}</main>
       {footer}
+      <Toaster />
     </>
   );
 }

@@ -76,8 +76,9 @@ export default function ContactPage() {
               
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">Họ và tên của bạn</label>
+                  <label htmlFor="contact-name" className="block text-xs font-semibold text-gray-700 mb-1">Họ và tên của bạn</label>
                   <input 
+                    id="contact-name"
                     required
                     type="text" 
                     placeholder="Nguyễn Văn A" 
@@ -85,8 +86,9 @@ export default function ContactPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">Số điện thoại</label>
+                  <label htmlFor="contact-phone" className="block text-xs font-semibold text-gray-700 mb-1">Số điện thoại</label>
                   <input 
+                    id="contact-phone"
                     required
                     type="tel" 
                     placeholder="0901234567" 
@@ -96,8 +98,9 @@ export default function ContactPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Địa chỉ Email</label>
+                <label htmlFor="contact-email" className="block text-xs font-semibold text-gray-700 mb-1">Địa chỉ Email</label>
                 <input 
+                  id="contact-email"
                   required
                   type="email" 
                   placeholder="example@email.com" 
@@ -106,8 +109,9 @@ export default function ContactPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Nội dung cần hỗ trợ</label>
+                <label htmlFor="contact-message" className="block text-xs font-semibold text-gray-700 mb-1">Nội dung cần hỗ trợ</label>
                 <textarea 
+                  id="contact-message"
                   required
                   rows={4}
                   placeholder="Nhập nội dung tin nhắn..." 

@@ -2,7 +2,8 @@
 "use client";
 
 import { useEffect, useState, FormEvent } from "react";
-import { Plus, Trash2, Loader2, CreditCard, ShieldCheck } from "lucide-react";
+import { Plus, Trash2, Loader2, CreditCard, ShieldCheck, X } from "lucide-react";
+import { toast } from "sonner";
 
 type PaymentMethod = {
   id: string;
@@ -22,6 +23,15 @@ export default function PaymentMethodManager() {
   const [accountName, setAccountName] = useState("");
   const [isDefault, setIsDefault] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!showModal) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setShowModal(false);
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [showModal]);
 
   useEffect(() => {
     fetchPaymentMethods();
@@ -60,11 +70,11 @@ export default function PaymentMethodManager() {
         resetForm();
         fetchPaymentMethods();
       } else {
-        alert(result.error?.message || "Không thể thêm phương thức thanh toán");
+        toast.error(result.error?.message || "Không thể thêm phương thức thanh toán");
       }
     } catch (error) {
       console.error("Lỗi khi lưu phương thức thanh toán:", error);
-      alert("Lỗi kết nối máy chủ");
+      toast.error("Lỗi kết nối máy chủ");
     } finally {
       setIsSubmitting(false);
     }
@@ -78,7 +88,7 @@ export default function PaymentMethodManager() {
       if (result.success) {
         fetchPaymentMethods();
       } else {
-        alert(result.error?.message || "Không thể xóa");
+        toast.error(result.error?.message || "Không thể xóa");
       }
     } catch (error) {
       console.error("Lỗi khi xóa:", error);
@@ -97,7 +107,7 @@ export default function PaymentMethodManager() {
       if (result.success) {
         fetchPaymentMethods();
       } else {
-        alert(result.error?.message || "Không thể đặt mặc định");
+        toast.error(result.error?.message || "Không thể đặt mặc định");
       }
     } catch (error) {
       console.error("Lỗi đặt mặc định:", error);
@@ -200,10 +210,18 @@ export default function PaymentMethodManager() {
 
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 relative animate-in fade-in zoom-in duration-200">
-            <h3 className="font-bold text-base text-[#164F8D] mb-4 pb-2 border-b">
+          <div role="dialog" aria-modal="true" aria-labelledby="payment-dialog-title" className="bg-white rounded-xl shadow-xl w-full max-w-md max-h-[90dvh] overflow-y-auto p-6 relative animate-in fade-in zoom-in duration-200">
+            <h3 id="payment-dialog-title" className="font-bold text-base text-[#164F8D] mb-4 pb-2 border-b">
               Liên kết tài khoản thanh toán
             </h3>
+            <button
+              type="button"
+              aria-label="Đóng hộp thoại thanh toán"
+              onClick={() => setShowModal(false)}
+              className="absolute right-4 top-4 rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+            >
+              <X size={16} />
+            </button>
 
             <form onSubmit={handleSubmit} className="space-y-3">
               <div>

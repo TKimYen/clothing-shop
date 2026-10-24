@@ -2,7 +2,8 @@
 "use client";
 
 import { useEffect, useState, FormEvent } from "react";
-import { Plus, Trash2, Edit2, Loader2, MapPin } from "lucide-react";
+import { Plus, Trash2, Edit2, Loader2, MapPin, X } from "lucide-react";
+import { toast } from "sonner";
 
 type Address = {
   id: string;
@@ -23,6 +24,15 @@ export default function AddressManager() {
   const [fullAddress, setFullAddress] = useState("");
   const [isDefault, setIsDefault] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!showModal) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setShowModal(false);
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [showModal]);
 
   useEffect(() => {
     fetchAddresses();
@@ -65,11 +75,11 @@ export default function AddressManager() {
         resetForm();
         fetchAddresses();
       } else {
-        alert(result.error?.message || "Không thể lưu địa chỉ");
+        toast.error(result.error?.message || "Không thể lưu địa chỉ");
       }
     } catch (error) {
       console.error("Lỗi khi lưu địa chỉ:", error);
-      alert("Lỗi kết nối máy chủ");
+      toast.error("Lỗi kết nối máy chủ");
     } finally {
       setIsSubmitting(false);
     }
@@ -84,11 +94,11 @@ export default function AddressManager() {
       if (result.success) {
         fetchAddresses();
       } else {
-        alert(result.error?.message || "Không thể xóa địa chỉ");
+        toast.error(result.error?.message || "Không thể xóa địa chỉ");
       }
     } catch (error) {
       console.error("Lỗi khi xóa địa chỉ:", error);
-      alert("Lỗi kết nối");
+      toast.error("Lỗi kết nối");
     }
   }
 
@@ -107,11 +117,11 @@ export default function AddressManager() {
       if (result.success) {
         fetchAddresses();
       } else {
-        alert(result.error?.message || "Không thể đặt địa chỉ mặc định");
+        toast.error(result.error?.message || "Không thể đặt địa chỉ mặc định");
       }
     } catch (error) {
       console.error("Lỗi khi đặt địa chỉ mặc định:", error);
-      alert("Lỗi kết nối máy chủ");
+      toast.error("Lỗi kết nối máy chủ");
     }
   }
 
@@ -223,10 +233,18 @@ export default function AddressManager() {
       {/* Modal Thêm / Sửa địa chỉ */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 relative animate-in fade-in zoom-in duration-200">
-            <h3 className="font-bold text-base text-[#164F8D] mb-4 pb-2 border-b">
+          <div role="dialog" aria-modal="true" aria-labelledby="address-dialog-title" className="bg-white rounded-xl shadow-xl w-full max-w-md max-h-[90dvh] overflow-y-auto p-6 relative animate-in fade-in zoom-in duration-200">
+            <h3 id="address-dialog-title" className="font-bold text-base text-[#164F8D] mb-4 pb-2 border-b">
               {editingId ? "Chỉnh sửa địa chỉ" : "Thêm địa chỉ mới"}
             </h3>
+            <button
+              type="button"
+              aria-label="Đóng hộp thoại địa chỉ"
+              onClick={() => setShowModal(false)}
+              className="absolute right-4 top-4 rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+            >
+              <X size={16} />
+            </button>
 
             <form onSubmit={handleSubmit} className="space-y-3">
               <div>
