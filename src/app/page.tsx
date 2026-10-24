@@ -1,7 +1,7 @@
 ﻿// src/app/page.tsx
 "use client";
 
-import { Heart, Pause, Play } from "lucide-react";
+import { Heart } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import Image from "next/image";
@@ -201,16 +201,6 @@ export default function Home() {
                   aria-label={`Chuyển đến slide ${idx + 1}`}
                 />
               ))}
-              {slides.length > 1 && (
-                <button
-                  type="button"
-                  onClick={() => setIsCarouselPaused((paused) => !paused)}
-                  aria-label={isCarouselPaused ? "Phát slideshow" : "Tạm dừng slideshow"}
-                  className="ml-1 grid size-7 place-items-center rounded-full text-[#17579B] hover:bg-white/70"
-                >
-                  {isCarouselPaused ? <Play size={13} /> : <Pause size={13} />}
-                </button>
-              )}
             </div>
             <p className="sr-only" aria-live="polite">Slide {currentSlide + 1} trên {slides.length}: {slide.title}</p>
           </div>
