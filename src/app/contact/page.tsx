@@ -1,15 +1,53 @@
 // src/app/contact/page.tsx
 'use client';
 
-import { Mail, Phone, MapPin, Send } from 'lucide-react';
+import { Mail, Phone, MapPin, Send, Loader2 } from 'lucide-react';
 import { useState, FormEvent } from 'react';
+
+const contactTopics = [
+  'Cần tư vấn sản phẩm',
+  'Phản hồi đơn hàng',
+  'Góp ý sản phẩm',
+  'Hoàn tiền',
+  'Đổi hoặc hoàn hàng',
+  'Khác',
+] as const;
 
 export default function ContactPage() {
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setSubmitted(true);
+    setIsSubmitting(true);
+    setErrorMessage(null);
+
+    const form = e.currentTarget;
+    const formData = new FormData(form);
+
+    try {
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(Object.fromEntries(formData.entries())),
+      });
+      const result = await response.json() as {
+        success: boolean;
+        error?: { message?: string };
+      };
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error?.message ?? 'Không thể gửi tin nhắn');
+      }
+
+      setSubmitted(true);
+      form.reset();
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Không thể gửi tin nhắn');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -79,6 +117,7 @@ export default function ContactPage() {
                   <label htmlFor="contact-name" className="block text-xs font-semibold text-gray-700 mb-1">Họ và tên của bạn</label>
                   <input 
                     id="contact-name"
+                    name="name"
                     required
                     type="text" 
                     placeholder="Nguyễn Văn A" 
@@ -89,6 +128,7 @@ export default function ContactPage() {
                   <label htmlFor="contact-phone" className="block text-xs font-semibold text-gray-700 mb-1">Số điện thoại</label>
                   <input 
                     id="contact-phone"
+                    name="phone"
                     required
                     type="tel" 
                     placeholder="0901234567" 
@@ -101,6 +141,7 @@ export default function ContactPage() {
                 <label htmlFor="contact-email" className="block text-xs font-semibold text-gray-700 mb-1">Địa chỉ Email</label>
                 <input 
                   id="contact-email"
+                  name="email"
                   required
                   type="email" 
                   placeholder="example@email.com" 
@@ -109,9 +150,24 @@ export default function ContactPage() {
               </div>
 
               <div>
+                <label htmlFor="contact-topic" className="block text-xs font-semibold text-gray-700 mb-1">Bạn cần hỗ trợ về</label>
+                <select
+                  id="contact-topic"
+                  name="topic"
+                  required
+                  defaultValue=""
+                  className="w-full bg-white border border-gray-300 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#17579B]"
+                >
+                  <option value="" disabled>Chọn loại vấn đề</option>
+                  {contactTopics.map((topic) => <option key={topic} value={topic}>{topic}</option>)}
+                </select>
+              </div>
+
+              <div>
                 <label htmlFor="contact-message" className="block text-xs font-semibold text-gray-700 mb-1">Nội dung cần hỗ trợ</label>
                 <textarea 
                   id="contact-message"
+                  name="message"
                   required
                   rows={4}
                   placeholder="Nhập nội dung tin nhắn..." 
@@ -119,12 +175,17 @@ export default function ContactPage() {
                 ></textarea>
               </div>
 
+              {errorMessage ? (
+                <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">{errorMessage}</p>
+              ) : null}
+
               <button 
                 type="submit"
+                disabled={isSubmitting}
                 className="w-full bg-[#164F8D] hover:bg-[#123d6d] text-white py-3 rounded-xl font-medium flex items-center justify-center gap-2 transition-colors shadow-md text-sm"
               >
-                <Send size={16} />
-                <span>Gửi thông tin liên hệ</span>
+                {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+                <span>{isSubmitting ? 'Đang gửi...' : 'Gửi thông tin liên hệ'}</span>
               </button>
             </form>
           )}

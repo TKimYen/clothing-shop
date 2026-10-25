@@ -9,6 +9,7 @@ import {
   Palette,
   Ruler,
   ShoppingBag,
+  BarChart3,
   Tag,
   Users,
   type LucideIcon,
@@ -35,7 +36,10 @@ export type NavGroup = { label: string; items: NavItem[] };
 export const ADMIN_NAV: NavGroup[] = [
   {
     label: "Overview",
-    items: [{ label: "Dashboard", href: "/admin", icon: LayoutDashboard }],
+    items: [
+      { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
+      { label: "Statistics", href: "/admin/statistics", icon: BarChart3 },
+    ],
   },
   {
     label: "Catalog",
