@@ -1,5 +1,6 @@
+
 import { NextResponse } from "next/server";
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 import { z } from "zod";
 
 const contactSchema = z.object({
@@ -10,37 +11,15 @@ const contactSchema = z.object({
   message: z.string().trim().min(10, "Nội dung cần ít nhất 10 ký tự").max(5000),
 });
 
-const recipient = "phamnhi839292@gmail.com";
-
-function getTransporter() {
-  const host = process.env.SMTP_HOST;
-  const port = Number(process.env.SMTP_PORT ?? 587);
-  const user = process.env.SMTP_USER;
-  const password = process.env.SMTP_PASSWORD;
-
-  if (!host || !Number.isInteger(port) || !user || !password) {
-    throw new Error("Email service is not configured");
-  }
-
-  return nodemailer.createTransport({
-    host,
-    port,
-    secure: process.env.SMTP_SECURE === "true" || port === 465,
-    auth: { user, pass: password },
-  });
-}
-
 function escapeHtml(value: string) {
-  return value.replace(
-    /[&<>"']/g,
-    (character) =>
-      ({
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        '"': "&quot;",
-        "'": "&#39;",
-      })[character] ?? character,
+  return value.replace(/[&<>"']/g, (character) =>
+    ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;",
+    })[character] ?? character,
   );
 }
 
@@ -53,19 +32,40 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          error: { message: result.error.issues[0]?.message ?? "Dữ liệu không hợp lệ" },
+          error: {
+            message:
+              result.error.issues[0]?.message ??
+              "Dữ liệu không hợp lệ",
+          },
         },
         { status: 400 },
       );
     }
 
+    const apiKey = process.env.RESEND_API_KEY;
+    const recipient = process.env.CONTACT_EMAIL;
+    
+    if (!apiKey || !recipient) {
+      console.error("Missing Resend configuration");
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            message: "Dịch vụ email chưa được cấu hình.",
+          },
+        },
+        { status: 500 },
+      );
+    }
+
+    const resend = new Resend(apiKey);
     const { name, phone, email, topic, message } = result.data;
-    const transporter = getTransporter();
+
     const htmlMessage = escapeHtml(message).replace(/\n/g, "<br />");
 
-    await transporter.sendMail({
-      from: process.env.SMTP_FROM ?? process.env.SMTP_USER,
-      to: recipient,
+    const { data, error } = await resend.emails.send({
+      from: "BlueWear Contact <onboarding@resend.dev>",
+      to: [recipient],
       replyTo: email,
       subject: `[BlueWear] ${topic} - ${name}`,
       text: [
@@ -88,13 +88,36 @@ export async function POST(request: Request) {
       `,
     });
 
-    return NextResponse.json({ success: true });
+    if (error) {
+      console.error("Resend email error:", {
+        name: error.name,
+        message: error.message,
+      });
+
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            message: "Không thể gửi tin nhắn lúc này. Vui lòng thử lại sau.",
+          },
+        },
+        { status: 502 },
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      id: data?.id,
+    });
   } catch (error) {
-    console.error("Failed to send contact message", error);
+    console.error("Failed to send contact message:", error);
+
     return NextResponse.json(
       {
         success: false,
-        error: { message: "Không thể gửi tin nhắn lúc này. Vui lòng thử lại sau." },
+        error: {
+          message: "Không thể gửi tin nhắn lúc này. Vui lòng thử lại sau.",
+        },
       },
       { status: 500 },
     );
