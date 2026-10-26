@@ -28,8 +28,6 @@ export type DashboardSummary = {
   totalUnits: number;
 };
 
-export type { StatisticsSummary } from "@/src/app/api/admin/statistics/route";
-
 export const dashboardService = {
   getSummary: () => api.get<DashboardSummary>("/api/admin/dashboard"),
 

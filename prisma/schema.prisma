@@ -82,6 +82,7 @@ model User {
   stockImports   StockImport[]
   paymentMethods UserPaymentMethod[]
 
+  @@index([role, createdAt])
   @@map("users")
 }
 
@@ -350,6 +351,7 @@ model Order {
 
   @@index([userId])
   @@index([status])
+  @@index([createdAt])
   @@map("orders")
 }
 

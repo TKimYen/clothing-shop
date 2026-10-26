@@ -10,6 +10,16 @@ export type { Order, OrderItem, OrderStatus, OrderStatusUpdate } from "./order";
 export { ORDER_STATUSES, ORDER_STATUS_FLOW } from "./order";
 export type { User, Address, Role, UserInput } from "./user";
 export type {
+  StatisticsChange,
+  StatisticsDailyPoint,
+  StatisticsPeriod,
+  StatisticsRange,
+  StatisticsStatusRow,
+  StatisticsSummary,
+  StatisticsTopProduct,
+  StatisticsTotals,
+} from "./statistics";
+export type {
   ListParams,
   ListResult,
   SortDirection,
