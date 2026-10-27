@@ -65,8 +65,12 @@ const STATUS_BAR: Record<string, string> = {
 };
 
 function Delta({ value, suffix = "so với kỳ trước" }: { value: number | null; suffix?: string }) {
-  if (value === null) {
+  if (value === null || value === undefined) {
     return <span className="text-[11px] font-semibold text-moss">Mới</span>;
+  }
+
+  if (!Number.isFinite(value)) {
+    return null;
   }
 
   const flat = Math.abs(value) < 0.05;

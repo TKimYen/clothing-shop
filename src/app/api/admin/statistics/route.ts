@@ -26,7 +26,7 @@ type ResolvedRange = { from: string; to: string; days: number };
 
 type DailyRow = {
   date: string;
-  revenue: number;
+  revenue: bigint | number | string;
   orders: number;
   unitsSold: number;
 };
@@ -34,9 +34,9 @@ type DailyRow = {
 type StatusRow = {
   status: OrderStatus;
   orders: number;
-  value: number;
-  discount: number;
-  shipping: number;
+  value: bigint | number | string;
+  discount: bigint | number | string;
+  shipping: bigint | number | string;
 };
 
 type TopProductRow = {
@@ -44,7 +44,7 @@ type TopProductRow = {
   name: string;
   thumbnail: string | null;
   units: number;
-  revenue: number;
+  revenue: bigint | number | string;
 };
 
 function periodRange(period: StatisticsPeriod): ResolvedRange {
@@ -90,6 +90,20 @@ function resolveRange(request: Request): ResolvedRange {
   return periodRange(period as StatisticsPeriod);
 }
 
+function toNumber(value: bigint | number | string | { toString(): string } | null | undefined): number {
+  if (value === null || value === undefined) return 0;
+  if (typeof value === "bigint") return Number(value);
+  if (typeof value === "string") {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : 0;
+  }
+  const parsed = Number(value.toString());
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
 function percentChange(current: number, previous: number): number | null {
   if (previous === 0) return current === 0 ? 0 : null;
   return Math.round(((current - previous) / previous) * 1000) / 10;
@@ -118,14 +132,14 @@ function dailyStats(start: Date, end: Date, range: ResolvedRange) {
       WHERE created_at >= ${start} AND created_at < ${end}
     ),
     day_orders AS (
-      SELECT (created_at + interval '7 hours')::date AS day,
+      SELECT ((created_at AT TIME ZONE 'Asia/Ho_Chi_Minh'))::date AS day,
              COUNT(*) FILTER (WHERE status::text <> 'CANCELLED')::int AS orders,
-             COALESCE(SUM(total_amount) FILTER (WHERE status::text <> 'CANCELLED'), 0)::float8 AS revenue
+             COALESCE(SUM(total_amount) FILTER (WHERE status::text <> 'CANCELLED'), 0)::numeric AS revenue
       FROM scoped
       GROUP BY 1
     ),
     day_units AS (
-      SELECT (o.created_at + interval '7 hours')::date AS day,
+      SELECT ((o.created_at AT TIME ZONE 'Asia/Ho_Chi_Minh'))::date AS day,
              COALESCE(SUM(oi.quantity), 0)::int AS units
       FROM scoped o
       JOIN order_items oi ON oi.order_id = o.id
@@ -134,7 +148,7 @@ function dailyStats(start: Date, end: Date, range: ResolvedRange) {
     )
     SELECT to_char(d.day, 'YYYY-MM-DD') AS date,
            COALESCE(o.orders, 0)::int AS orders,
-           COALESCE(o.revenue, 0)::float8 AS revenue,
+           COALESCE(o.revenue, 0)::numeric AS revenue,
            COALESCE(u.units, 0)::int AS "unitsSold"
     FROM days d
     LEFT JOIN day_orders o ON o.day = d.day
@@ -147,9 +161,9 @@ function statusStats(start: Date, end: Date) {
   return prisma.$queryRaw<StatusRow[]>`
     SELECT status::text AS status,
            COUNT(*)::int AS orders,
-           COALESCE(SUM(total_amount), 0)::float8 AS value,
-           COALESCE(SUM(discount_amount), 0)::float8 AS discount,
-           COALESCE(SUM(shipping_fee), 0)::float8 AS shipping
+           COALESCE(SUM(total_amount), 0)::numeric AS value,
+           COALESCE(SUM(discount_amount), 0)::numeric AS discount,
+           COALESCE(SUM(shipping_fee), 0)::numeric AS shipping
     FROM orders
     WHERE created_at >= ${start} AND created_at < ${end}
     GROUP BY status
@@ -162,7 +176,7 @@ function topProductStats(start: Date, end: Date) {
            COALESCE(p.name, MIN(oi.product_name)) AS name,
            img.url AS thumbnail,
            SUM(oi.quantity)::int AS units,
-           SUM(oi.unit_price * oi.quantity)::float8 AS revenue
+           SUM(oi.unit_price * oi.quantity)::numeric AS revenue
     FROM orders o
     JOIN order_items oi ON oi.order_id = o.id
     JOIN product_variants pv ON pv.id = oi.variant_id
@@ -187,8 +201,8 @@ function topProductStats(start: Date, end: Date) {
  *   ?period=7|30|90
  *   ?from=YYYY-MM-DD&to=YYYY-MM-DD   (custom range, max 366 days)
  *
- * Revenue follows the shop rule: every non-cancelled order, regardless of
- * payment status. Days are grouped by the Asia/Ho_Chi_Minh calendar.
+ * Quy tắc: chỉ tính đơn không CANCELLED. Doanh thu không phụ thuộc payment.status.
+ * Gom ngày theo lịch Asia/Ho_Chi_Minh (UTC+07:00). Dữ liệu tiền dùng numeric để tránh sai số.
  */
 export const GET = adminHandler(async (request): Promise<StatisticsSummary> => {
   const range = resolveRange(request);
@@ -247,7 +261,7 @@ export const GET = adminHandler(async (request): Promise<StatisticsSummary> => {
   const daily = dailyRows.map((row) => ({
     date: row.date,
     label: reportDayLabel(row.date),
-    revenue: Number(row.revenue),
+    revenue: toNumber(row.revenue),
     orders: row.orders,
     unitsSold: row.unitsSold,
   }));
@@ -264,16 +278,16 @@ export const GET = adminHandler(async (request): Promise<StatisticsSummary> => {
     const orders = row?.orders ?? 0;
 
     if (status !== "CANCELLED" && row) {
-      totals.revenue += Number(row.value);
+      totals.revenue += toNumber(row.value);
       totals.orders += row.orders;
-      totals.discountTotal += Number(row.discount);
-      totals.shippingTotal += Number(row.shipping);
+      totals.discountTotal += toNumber(row.discount);
+      totals.shippingTotal += toNumber(row.shipping);
     }
 
     return {
       status,
       orders,
-      value: Number(row?.value ?? 0),
+      value: toNumber(row?.value ?? 0),
       percent: allOrders ? (orders / allOrders) * 100 : 0,
     };
   });
@@ -281,20 +295,20 @@ export const GET = adminHandler(async (request): Promise<StatisticsSummary> => {
   totals.averageOrderValue = totals.orders ? totals.revenue / totals.orders : 0;
 
   const previous = emptyTotals();
-  previous.revenue = Number(previousOrderStats._sum.totalAmount ?? 0);
+  previous.revenue = toNumber(previousOrderStats._sum.totalAmount ?? 0);
   previous.orders = previousOrderStats._count._all;
   previous.customers = previousCustomers;
   previous.unitsSold = previousUnitStats._sum.quantity ?? 0;
   previous.averageOrderValue = previous.orders ? previous.revenue / previous.orders : 0;
-  previous.discountTotal = Number(previousOrderStats._sum.discountAmount ?? 0);
-  previous.shippingTotal = Number(previousOrderStats._sum.shippingFee ?? 0);
+  previous.discountTotal = toNumber(previousOrderStats._sum.discountAmount ?? 0);
+  previous.shippingTotal = toNumber(previousOrderStats._sum.shippingFee ?? 0);
 
   const topProducts: StatisticsTopProduct[] = topProductRows.map((row) => ({
     productId: row.productId,
     name: row.name,
     thumbnail: row.thumbnail,
     units: row.units,
-    revenue: Number(row.revenue),
+    revenue: toNumber(row.revenue),
   }));
 
   return {
