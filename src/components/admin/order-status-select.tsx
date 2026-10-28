@@ -52,6 +52,7 @@ export function OrderStatusSelect({
       toast.success(`${order.orderCode} is now ${order.status.toLowerCase()}`);
       queryClient.setQueryData(["orders", "detail", orderId], order);
       queryClient.invalidateQueries({ queryKey: ["orders"] });
+      queryClient.invalidateQueries({ queryKey: ["statistics"] });
       setConfirming(false);
     },
     onError: (error) => {

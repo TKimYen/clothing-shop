@@ -182,7 +182,7 @@ export default function CollectionsPage() {
                 </p>
                 <div className="pt-1">
                   <Link
-                    href={`/collections/${item.slug}`}
+                    href={`/products?collection=${encodeURIComponent(item.slug)}`}
                     className="inline-flex items-center gap-2 bg-[#17579B] text-white px-5 py-2.5 rounded-full font-medium hover:opacity-90 transition-colors shadow-sm text-xs"
                   >
                     <span>Xem sản phẩm</span>

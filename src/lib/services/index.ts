@@ -12,6 +12,8 @@ export { couponService } from "./couponService";
 export { orderService } from "./orderService";
 export { userService } from "./userService";
 export { dashboardService } from "./dashboardService";
+export { statisticsService } from "./statisticsService";
+export type { StatisticsQuery } from "./statisticsService";
 export { stockImportService } from "./stockImportService";
 export type { DashboardSummary, LowStockRow } from "./dashboardService";
 export type { UserStats } from "./userService";
