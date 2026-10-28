@@ -50,9 +50,12 @@ export async function GET(
     }
 
     return NextResponse.json({ success: true, data: order });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("LỖI CHI TIẾT GET ORDER:", error);
-    return NextResponse.json({ success: false, error: { message: error.message || "Lỗi hệ thống" } }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: { message: error instanceof Error ? error.message : "Lỗi hệ thống" } },
+      { status: 500 },
+    );
   }
 }
 
@@ -124,8 +127,16 @@ export async function PATCH(
     });
 
     return NextResponse.json({ success: true, data: updatedOrder });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("LỖI CHI TIẾT PATCH ORDER:", error);
-    return NextResponse.json({ success: false, error: { message: error.message || "Lỗi hệ thống khi cập nhật đơn hàng" } }, { status: 500 });
+    return NextResponse.json(
+      {
+        success: false,
+        error: {
+          message: error instanceof Error ? error.message : "Lỗi hệ thống khi cập nhật đơn hàng",
+        },
+      },
+      { status: 500 },
+    );
   }
 }

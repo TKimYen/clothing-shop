@@ -94,6 +94,15 @@ Tồn kho (`ProductVariant.stockQuantity`) **không được sửa tay**.
 - **Doanh thu** = tổng `totalAmount` của các đơn **không** bị huỷ.
 - Sản phẩm đã có trong đơn hàng **không xoá được** — chuyển sang không hoạt động (`isActive = false`).
 
+### Thống kê
+
+- Trang **Statistics** đọc dữ liệu thật từ `GET /api/admin/statistics`, có lọc 7 / 30 / 90 ngày hoặc khoảng ngày tùy chọn (tối đa 366 ngày).
+- Các ngày được nhóm theo múi giờ **Asia/Ho_Chi_Minh** (UTC+7), không phụ thuộc múi giờ của server.
+- Mỗi chỉ số (doanh thu, đơn hàng, khách hàng mới, sản phẩm đã bán, giá trị đơn trung bình) đều so sánh với khoảng thời gian liền trước có cùng độ dài.
+- Đơn **CANCELLED** không tính vào doanh thu / sản phẩm đã bán nhưng vẫn hiển thị trong phần trạng thái đơn hàng.
+- Trang có biểu đồ doanh thu theo ngày, top 8 sản phẩm bán chạy, phân bố trạng thái đơn và nút xuất CSV.
+- Doanh thu ở bảng top sản phẩm là **doanh thu gộp** (`unitPrice * quantity`), chưa trừ giảm giá cấp đơn.
+
 ### Người dùng
 
 - Tài khoản do Clerk quản lý; user được đồng bộ vào bảng `users` khi đăng nhập.
@@ -107,6 +116,7 @@ Tồn kho (`ProductVariant.stockQuantity`) **không được sửa tay**.
 | Trang | Chức năng |
 |---|---|
 | Dashboard | Tổng user / sản phẩm / danh mục / đơn / doanh thu, đơn theo trạng thái, đơn gần đây, tồn kho thấp |
+| Statistics | Doanh thu, đơn hàng, khách hàng mới, sản phẩm đã bán, so sánh kỳ trước, biểu đồ theo ngày, top sản phẩm, trạng thái đơn, xuất CSV |
 | Products | Danh sách (tìm, lọc category/collection/active, sắp xếp), thêm/sửa (Info · Variants · Images), chi tiết, **nhập hàng**, lịch sử nhập |
 | Stock imports | Danh sách phiếu nhập hàng, tạo phiếu nhập (cho cả sản phẩm hoặc từng variant) |
 | Categories · Collections · Sizes · Colors | CRUD |
@@ -122,6 +132,7 @@ Danh sách nhận `?page&pageSize&search&sort&dir` và các tham số lọc, tr�
 | Endpoint | Mô tả |
 |---|---|
 | `GET /dashboard` | Số liệu dashboard |
+| `GET /statistics` | Thống kê (`?period=7\|30\|90` hoặc `?from=YYYY-MM-DD&to=YYYY-MM-DD`) |
 | `GET, POST /categories` · `GET, PUT, DELETE /categories/:id` · `GET /categories/counts` | Danh mục |
 | `GET, POST /collections` · `GET, PUT, DELETE /collections/:id` · `GET /collections/counts` | Bộ sưu tập |
 | `GET, POST /sizes` · `GET, PUT, DELETE /sizes/:id` · `GET /sizes/counts` | Size |
