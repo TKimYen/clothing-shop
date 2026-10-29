@@ -2,6 +2,7 @@
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { PackagePlus, Pencil } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import * as React from "react";
@@ -390,10 +391,9 @@ function ImageGallery({
 function Figure({ url, alt, name }: { url: string; alt: string; name: string }) {
   return (
     <figure className="w-32">
-      <div className="overflow-hidden rounded-md border border-line bg-canvas-line">
-        {/* Remote placeholder images: plain <img> avoids next/image remote config. */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={url} alt={alt || name} loading="lazy" className="aspect-square w-full object-cover" />
+      <div className="relative aspect-square overflow-hidden rounded-md border border-line bg-canvas-line">
+        {/* Admin URLs can point to any host, so skip the optimizer. */}
+        <Image src={url} alt={alt || name} fill sizes="128px" unoptimized className="object-cover" />
       </div>
       <figcaption className="mt-1.5 truncate text-[11px] text-muted">{alt || "—"}</figcaption>
     </figure>

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import * as React from "react";
 import { Badge, Input, Label, Select } from "@/src/components/ui";
 import { cn } from "@/src/lib/utils";
@@ -60,12 +61,13 @@ export function ProductThumb({
   }
 
   return (
-    // Remote placeholder images: plain <img> avoids next/image remote config.
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
+    // Admin URLs can point to any host, so skip the optimizer instead of listing every domain.
+    <Image
       src={src}
       alt={alt}
-      loading="lazy"
+      width={size === "sm" ? 36 : 44}
+      height={size === "sm" ? 36 : 44}
+      unoptimized
       onError={() => setFailed(true)}
       className={cn(dimension, "shrink-0 rounded-md bg-canvas-line object-cover")}
     />

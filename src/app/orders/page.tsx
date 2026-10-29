@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from "react";
 import { ShoppingBag, Eye, XCircle, Loader2 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { toast } from "sonner";
 import { buildBankTransferQrUrl } from "@/src/lib/payment-config";
@@ -248,9 +249,12 @@ export default function OrdersPage() {
 
                   return (
                     <div className="mt-4 flex flex-col items-center gap-3 rounded-lg border border-blue-100 bg-blue-50/50 p-4 sm:flex-row sm:items-start">
-                      <img
+                      <Image
                         src={qrUrl}
                         alt={`QR thanh toán đơn ${order.orderCode}`}
+                        width={192}
+                        height={192}
+                        unoptimized
                         className="h-48 w-48 rounded-lg bg-white p-2"
                       />
                       <div className="text-xs text-gray-700">
