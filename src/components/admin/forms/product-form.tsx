@@ -1,6 +1,7 @@
 "use client";
 
 import { ImagePlus, Loader2, Plus, Trash2, Upload } from "lucide-react";
+import Image from "next/image";
 import { toast } from "sonner";
 import * as React from "react";
 import { useFieldArray, type FieldErrors } from "react-hook-form";
@@ -529,15 +530,21 @@ export function ProductForm({
                     return (
                       <li key={field.id} className="grid gap-3 p-4 sm:grid-cols-12 sm:items-start">
                         <div className="flex items-center gap-3 sm:col-span-1">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={url}
-                            alt=""
-                            className="size-12 shrink-0 rounded-md bg-canvas-line object-cover"
-                            onError={(event) => {
-                              event.currentTarget.style.visibility = "hidden";
-                            }}
-                          />
+                          {url ? (
+                            <Image
+                              src={url}
+                              alt=""
+                              width={48}
+                              height={48}
+                              unoptimized
+                              className="size-12 shrink-0 rounded-md bg-canvas-line object-cover"
+                              onError={(event) => {
+                                event.currentTarget.style.visibility = "hidden";
+                              }}
+                            />
+                          ) : (
+                            <span className="size-12 shrink-0 rounded-md bg-canvas-line" aria-hidden />
+                          )}
                         </div>
 
                         <div className="sm:col-span-5">
