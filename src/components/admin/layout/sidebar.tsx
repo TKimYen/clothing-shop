@@ -14,6 +14,7 @@ import {
   Tag,
   Users,
   Mail,
+  Star,
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
@@ -59,6 +60,7 @@ export const ADMIN_NAV: NavGroup[] = [
     items: [
       { label: "Coupons", href: "/admin/coupons", icon: Tag },
       { label: "Orders", href: "/admin/orders", icon: ClipboardList },
+      { label: "Reviews", href: "/admin/reviews", icon: Star }, // Thêm mục Quản lý Đánh giá vào đây
       { label: "Users", href: "/admin/users", icon: Users },
       { label: "Contacts", href: "/admin/contacts", icon: Mail },
     ],

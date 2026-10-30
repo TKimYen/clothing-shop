@@ -2,11 +2,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Package, MapPin, CreditCard, Loader2, AlertCircle } from "lucide-react";
+import { useParams } from "next/navigation";
+import { ArrowLeft, Package, MapPin, CreditCard, Loader2, AlertCircle, Star } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import Image from "next/image";
+
+type ReviewItem = {
+  id: string;
+  rating: number;
+  comment: string | null;
+  createdAt: string;
+};
 
 type OrderItem = {
   id: string;
@@ -16,8 +23,10 @@ type OrderItem = {
   unitPrice: number;
   quantity: number;
   variant: {
+    productId: string;
     product: {
       images: { url: string }[];
+      reviews?: ReviewItem[];
     };
   };
 };
@@ -44,7 +53,6 @@ type OrderDetail = {
 
 export default function OrderDetailPage() {
   const params = useParams();
-  const router = useRouter();
   const orderId = params.id as string;
 
   const [order, setOrder] = useState<OrderDetail | null>(null);
@@ -87,7 +95,7 @@ export default function OrderDetailPage() {
       const result = await res.json();
       if (result.success) {
         toast.success("Hủy đơn hàng thành công");
-        fetchOrderDetail(); // Tải lại thông tin đơn hàng
+        fetchOrderDetail();
       } else {
         toast.error(result.error?.message || "Không thể hủy đơn hàng");
       }
@@ -159,7 +167,6 @@ export default function OrderDetailPage() {
             </p>
           </div>
 
-          {/* Nút Hủy đơn hàng (Chỉ hiện khi trạng thái là PENDING) */}
           {order.status === "PENDING" && (
             <button
               onClick={handleCancelOrder}
@@ -172,7 +179,7 @@ export default function OrderDetailPage() {
           )}
         </div>
 
-        {/* Địa chỉ nhận hàng & Thanh toán */}
+        {/* Địa chỉ & Thanh toán */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
           <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 space-y-1.5">
             <h3 className="font-bold text-gray-800 flex items-center gap-1.5 mb-2">
@@ -203,34 +210,80 @@ export default function OrderDetailPage() {
           </div>
         </div>
 
-        {/* Danh sách sản phẩm trong đơn */}
+        {/* Danh sách sản phẩm & Trạng thái đánh giá */}
         <div>
           <h3 className="font-bold text-gray-800 text-sm mb-3">Sản phẩm đã đặt ({order.items.length})</h3>
-          <div className="space-y-3 divide-y divide-gray-100">
+          <div className="space-y-4 divide-y divide-gray-100">
             {order.items.map((item) => {
               const imageUrl = item.variant?.product?.images?.[0]?.url || "/placeholder.png";
+              const userReview = item.variant?.product?.reviews?.[0]; 
+              const productId = item.variant?.productId;
+
               return (
-                <div key={item.id} className="pt-3 first:pt-0 flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-3">
-                    <div className="w-14 h-14 rounded-lg bg-gray-100 overflow-hidden shrink-0 border relative">
-                      <Image src={imageUrl} alt={item.productName} fill className="object-cover" />
+                <div key={item.id} className="pt-4 first:pt-0 space-y-3">
+                  <div className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-3">
+                      <div className="w-14 h-14 rounded-lg bg-gray-100 overflow-hidden shrink-0 border relative">
+                        <Image src={imageUrl} alt={item.productName} fill className="object-cover" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-gray-800">{item.productName}</p>
+                        <p className="text-gray-500 text-[11px] mt-0.5">
+                          Phân loại: {item.colorName}, {item.sizeLabel}
+                        </p>
+                        <p className="text-gray-500 text-[11px]">Số lượng: x{item.quantity}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-semibold text-gray-800">{item.productName}</p>
-                      <p className="text-gray-500 text-[11px] mt-0.5">
-                        Phân loại: {item.colorName}, {item.sizeLabel}
-                      </p>
-                      <p className="text-gray-500 text-[11px]">Số lượng: x{item.quantity}</p>
+                    
+                    <div className="flex flex-col items-end gap-2">
+                      <span className="font-bold text-gray-800">{(Number(item.unitPrice) * item.quantity).toLocaleString()}đ</span>
+
+                      {/* Hiển thị nhãn Đã đánh giá hoặc nút Đánh giá ngay dựa trên order.id */}
+                      {order.status === "DELIVERED" && (
+                        userReview ? (
+                          <span className="bg-gray-100 text-gray-600 text-[11px] px-3 py-1 rounded-lg font-medium">
+                            ✓ Đã đánh giá
+                          </span>
+                        ) : (
+                          <Link
+                            href={`/orders/review/${productId}?name=${encodeURIComponent(item.productName)}&orderId=${order.id}`}
+                            className="bg-[#164F8D] text-white text-[11px] px-3 py-1.5 rounded-lg font-medium hover:bg-[#123d6d] transition-colors shadow-xs"
+                          >
+                            Đánh giá ngay
+                          </Link>
+                        )
+                      )}
                     </div>
                   </div>
-                  <span className="font-bold text-gray-800">{(Number(item.unitPrice) * item.quantity).toLocaleString()}đ</span>
+
+                  {/* Hiển thị chi tiết nội dung đánh giá ngay tại trang chi tiết đơn hàng */}
+                  {userReview && (
+                    <div className="bg-blue-50/50 rounded-xl p-3 border border-blue-100 text-xs space-y-1 ml-17">
+                      <div className="flex items-center gap-1 text-yellow-500 font-semibold">
+                        <div className="flex">
+                          {Array.from({ length: userReview.rating }).map((_, i) => (
+                            <Star key={i} size={13} className="fill-yellow-400 text-yellow-400" />
+                          ))}
+                        </div>
+                        <span className="text-gray-700 ml-1">{userReview.rating}/5 sao</span>
+                        <span className="text-gray-400 font-normal ml-auto text-[11px]">
+                          {new Date(userReview.createdAt).toLocaleDateString("vi-VN")}
+                        </span>
+                      </div>
+                      {userReview.comment ? (
+                        <p className="text-gray-600 italic">"{userReview.comment}"</p>
+                      ) : (
+                        <p className="text-gray-400 italic">Không có nhận xét chi tiết</p>
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             })}
           </div>
         </div>
 
-        {/* Tổng kết tiền */}
+        {/* Tổng tiền */}
         <div className="border-t pt-4 space-y-2 text-xs text-gray-600 max-w-sm ml-auto">
           <div className="flex justify-between">
             <span>Tạm tính:</span>
@@ -240,7 +293,7 @@ export default function OrderDetailPage() {
             <span>Phí vận chuyển:</span>
             <span className="font-semibold text-gray-800">{Number(order.shippingFee).toLocaleString()}đ</span>
           </div>
-          {order.discountAmount > 0 && (
+          {order.discountAmount >0 && (
             <div className="flex justify-between text-green-600">
               <span>Giảm giá:</span>
               <span>-{Number(order.discountAmount).toLocaleString()}đ</span>

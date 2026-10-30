@@ -112,3 +112,8 @@ export type UserPaymentMethod = Prisma.UserPaymentMethodModel
  * 
  */
 export type Contact = Prisma.ContactModel
+/**
+ * Model Review
+ * 
+ */
+export type Review = Prisma.ReviewModel

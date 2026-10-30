@@ -15,6 +15,10 @@ type OrderItem = {
   sizeLabel: string;
   quantity: number;
   unitPrice: number;
+  variantId?: string;
+  variant?: {
+    productId: string;
+  };
 };
 
 type Order = {
@@ -191,9 +195,21 @@ export default function OrdersPage() {
                         {item.quantity}
                       </p>
                     </div>
-                    <span className="font-medium text-gray-700">
-                      {(item.unitPrice * item.quantity).toLocaleString()}đ
-                    </span>
+                    <div className="flex items-center gap-3">
+                      <span className="font-medium text-gray-700">
+                        {(item.unitPrice * item.quantity).toLocaleString()}đ
+                      </span>
+
+                      {/* Nút Đánh giá chuyển hướng sang trang riêng biệt */}
+                      {order.status === "DELIVERED" && item.variant?.productId && (
+                        <Link
+                          href={`/orders/review/${item.variant.productId}?name=${encodeURIComponent(item.productName)}&orderId=${order.orderCode}`}
+                          className="bg-[#164F8D] text-white text-[11px] px-3 py-1 rounded-lg font-medium hover:bg-[#123d6d] transition-colors"
+                        >
+                          Đánh giá
+                        </Link>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -229,15 +245,10 @@ export default function OrdersPage() {
                     >
                       <Eye size={14} /> Chi tiết
                     </Link>
-
-                    {order.status === "DELIVERED" && (
-                      <button className="bg-[#164F8D] text-white text-xs px-3 py-1.5 rounded-lg font-medium hover:bg-[#123d6d] cursor-pointer">
-                        Đánh giá
-                      </button>
-                    )}
                   </div>
                 </div>
               </div>
+
               {order.payment?.method === "BANK_TRANSFER" &&
                 order.payment.status === "UNPAID" &&
                 (() => {

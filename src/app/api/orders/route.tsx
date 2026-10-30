@@ -10,7 +10,7 @@ import {
 
 class OutOfStockError extends Error {}
 
-// 1. Lấy danh sách đơn hàng (tự động hủy & hoàn kho nếu quá 24h chưa thanh toán)
+// 1. Lấy danh sách đơn hàng (tự động hủy & hoàn kho nếu quá 24h chưa thanh toán + tích hợp trạng thái đánh giá)
 export async function GET() {
   try {
     const { userId: clerkId } = await auth();
@@ -29,30 +29,62 @@ export async function GET() {
       return NextResponse.json({ success: true, data: [] });
     }
 
+    // Lấy danh sách đơn hàng kèm items và variant
     const orders = await prisma.order.findMany({
       where: { userId: user.id },
       include: {
-        items: true,
+        items: {
+          include: {
+            variant: true,
+          },
+        },
         payment: true,
       },
       orderBy: { createdAt: "desc" },
     });
 
+    // Lấy toàn bộ đánh giá của user để map vào các sản phẩm trong đơn hàng (tránh đánh giá trùng lặp)
+    const userReviews = await prisma.review.findMany({
+      where: { userId: user.id },
+    });
+
+    // Gắn thông tin review vào từng item trong order
+    const ordersWithReviews = orders.map((order) => ({
+      ...order,
+      items: order.items.map((item) => {
+        const targetProductId = item.variant?.productId || item.variantId;
+        const existingReview = userReviews.find(
+          (rev) => rev.productId === targetProductId && (rev.orderId === order.id || rev.orderId === order.orderCode)
+        );
+        return {
+          ...item,
+          review: existingReview || null,
+        };
+      }),
+    }));
+
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
     // Kiểm tra tự động hủy đơn quá 24h chưa thanh toán
-    for (let i = 0; i < orders.length; i++) {
-      const order = orders[i];
+    for (let i = 0; i < ordersWithReviews.length; i++) {
+      const order = ordersWithReviews[i];
       if (
         order.status === "PENDING" &&
         order.payment?.status === "UNPAID" &&
         new Date(order.createdAt) < twentyFourHoursAgo
       ) {
-        orders[i] = await prisma.$transaction(async (tx) => {
+        ordersWithReviews[i] = await prisma.$transaction(async (tx) => {
           const cancelledOrder = await tx.order.update({
             where: { id: order.id },
             data: { status: "CANCELLED" },
-            include: { items: true, payment: true },
+            include: { 
+              items: {
+                include: {
+                  variant: true,
+                },
+              }, 
+              payment: true 
+            },
           });
 
           for (const item of cancelledOrder.items) {
@@ -66,12 +98,21 @@ export async function GET() {
             });
           }
 
-          return cancelledOrder;
+          // Map lại review cho đơn hàng vừa hủy
+          const mappedCancelledItems = cancelledOrder.items.map((item) => {
+            const targetProductId = item.variant?.productId || item.variantId;
+            const existingReview = userReviews.find(
+              (rev) => rev.productId === targetProductId && (rev.orderId === cancelledOrder.id || rev.orderId === cancelledOrder.orderCode)
+            );
+            return { ...item, review: existingReview || null };
+          });
+
+          return { ...cancelledOrder, items: mappedCancelledItems };
         });
       }
     }
 
-    return NextResponse.json({ success: true, data: orders });
+    return NextResponse.json({ success: true, data: ordersWithReviews });
   } catch (error) {
     console.error("Lỗi lấy danh sách đơn hàng:", error);
     return NextResponse.json(
@@ -81,7 +122,7 @@ export async function GET() {
   }
 }
 
-// 2. Tạo đơn hàng mới từ giỏ hàng
+// 2. Tạo đơn hàng mới từ giỏ hàng (Đầy đủ logic mã giảm giá, tồn kho và giao dịch)
 export async function POST(request: Request) {
   try {
     const { userId: clerkId } = await auth();

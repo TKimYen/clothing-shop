@@ -19,7 +19,6 @@ export async function GET(
       return NextResponse.json({ success: false, error: { message: "User not found" } }, { status: 404 });
     }
 
-    // Bắt buộc phải await params trong Next.js mới
     const resolvedParams = await params;
     const orderId = resolvedParams.id;
 
@@ -30,7 +29,20 @@ export async function GET(
           include: {
             variant: {
               include: {
-                product: { include: { images: true } },
+                product: { 
+                  include: { 
+                    images: true,
+                    // Lấy đánh giá của user, hỗ trợ khớp cả id đơn hàng hoặc mã orderCode
+                    reviews: {
+                      where: { 
+                        userId: user.id,
+                        OR: [
+                          { orderId: orderId },
+                        ]
+                      },
+                    },
+                  }, 
+                },
                 color: true,
                 size: true,
               },
@@ -43,6 +55,24 @@ export async function GET(
 
     if (!order) {
       return NextResponse.json({ success: false, error: { message: "Không tìm thấy đơn hàng" } }, { status: 404 });
+    }
+
+    // Nếu là review kiểm tra theo orderCode nữa để an toàn tuyệt đối
+    if (order.items && order.items.length > 0) {
+      for (const item of order.items) {
+        if (item.variant?.product && (!item.variant.product.reviews || item.variant.product.reviews.length === 0)) {
+          const fallbackReviews = await prisma.review.findMany({
+            where: {
+              userId: user.id,
+              productId: item.variant.productId,
+              orderId: order.orderCode,
+            }
+          });
+          if (fallbackReviews.length > 0) {
+            item.variant.product.reviews = fallbackReviews;
+          }
+        }
+      }
     }
 
     if (user.role === "CUSTOMER" && order.userId !== user.id) {
@@ -75,7 +105,6 @@ export async function PATCH(
       return NextResponse.json({ success: false, error: { message: "User not found" } }, { status: 404 });
     }
 
-    // Bắt buộc phải await params trong Next.js mới
     const resolvedParams = await params;
     const orderId = resolvedParams.id;
     
@@ -109,7 +138,6 @@ export async function PATCH(
         data: { status: status || existingOrder.status },
       });
 
-      // Nếu chuyển sang CANCELLED và trước đó chưa hủy -> Hoàn kho
       if (status === "CANCELLED" && existingOrder.status !== "CANCELLED") {
         for (const item of existingOrder.items) {
           await tx.productVariant.update({
