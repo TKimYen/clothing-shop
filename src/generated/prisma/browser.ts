@@ -107,3 +107,8 @@ export type Payment = Prisma.PaymentModel
  * 
  */
 export type UserPaymentMethod = Prisma.UserPaymentMethodModel
+/**
+ * Model Contact
+ * 
+ */
+export type Contact = Prisma.ContactModel

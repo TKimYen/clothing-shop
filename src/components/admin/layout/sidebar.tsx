@@ -1,3 +1,4 @@
+// src/components/admin/layout/sidebar.tsx
 "use client";
 
 import {
@@ -12,6 +13,7 @@ import {
   BarChart3,
   Tag,
   Users,
+  Mail,
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
@@ -58,6 +60,7 @@ export const ADMIN_NAV: NavGroup[] = [
       { label: "Coupons", href: "/admin/coupons", icon: Tag },
       { label: "Orders", href: "/admin/orders", icon: ClipboardList },
       { label: "Users", href: "/admin/users", icon: Users },
+      { label: "Contacts", href: "/admin/contacts", icon: Mail },
     ],
   },
 ];

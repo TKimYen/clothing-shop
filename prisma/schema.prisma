@@ -404,3 +404,16 @@ model UserPaymentMethod {
   @@index([userId])
   @@map("user_payment_methods")
 }
+
+model Contact {
+  id        String   @id @default(cuid())
+  name      String
+  phone     String
+  email     String
+  topic     String
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@map("contacts")
+}

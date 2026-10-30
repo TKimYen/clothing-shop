@@ -1,6 +1,6 @@
-'use client'
-
 // src/components/Footer.tsx
+'use client';
+
 import Link from "next/link";
 import Image from "next/image";
 import { FaFacebook, FaInstagram, FaLinkedin, FaTwitter } from 'react-icons/fa';
@@ -23,23 +23,23 @@ export default function Footer() {
                     </div>
                 </div>
 
-                {/* Links 1 */}
+                {/* Links 1: Hỗ trợ khách hàng */}
                 <div>
                     <h4 className="font-semibold mb-4 text-lg">Hỗ trợ khách hàng</h4>
                     <ul className="space-y-2 text-sm text-gray-300">
-                        <li><Link href="/contact" className="hover:text-white">Trung tâm trợ giúp</Link></li>
-                        <li><Link href="/contact" className="hover:text-white">Chính sách đổi trả</Link></li>
-                        <li><Link href="/contact" className="hover:text-white">Chính sách vận chuyển</Link></li>
-                        <li><Link href="/contact" className="hover:text-white">Câu hỏi thường gặp</Link></li>
+                        <li><Link href="/help" className="hover:text-white">Trung tâm trợ giúp</Link></li>
+                        <li><Link href="/policies/returns" className="hover:text-white">Chính sách đổi trả</Link></li>
+                        <li><Link href="/policies/shipping" className="hover:text-white">Chính sách vận chuyển</Link></li>
+                        <li><Link href="/faq" className="hover:text-white">Câu hỏi thường gặp</Link></li>
                     </ul>
                 </div>
 
-                {/* Links 2 */}
+                {/* Links 2: Về chúng tôi */}
                 <div>
                     <h4 className="font-semibold mb-4 text-lg">Về chúng tôi</h4>
                     <ul className="space-y-2 text-sm text-gray-300">
                         <li><Link href="/about" className="hover:text-white">Giới thiệu</Link></li>
-                        <li><Link href="/contact" className="hover:text-white">Tuyển dụng</Link></li>
+                        <li><Link href="/careers" className="hover:text-white">Tuyển dụng</Link></li>
                         <li><Link href="/contact" className="hover:text-white">Liên hệ</Link></li>
                     </ul>
                 </div>
@@ -47,8 +47,6 @@ export default function Footer() {
                 {/* Newsletter & Payment Methods */}
                 <div>
                     <h4 className="font-semibold mb-4 text-lg">Phương thức thanh toán</h4>
-
-                    {/* Phần thêm ảnh thanh toán (payment.png) */}
                     <div>
                         <div className="relative w-48 h-8">
                             <Image
@@ -66,8 +64,8 @@ export default function Footer() {
             <div className="container mx-auto px-4 pt-8 border-t border-white/10 flex flex-col md:flex-row justify-between items-center text-xs text-gray-400">
                 <p>© {new Date().getFullYear()} BlueWear. All rights reserved.</p>
                 <div className="flex gap-4 mt-4 md:mt-0">
-                    <Link href="/contact" className="hover:text-white">Điều khoản sử dụng</Link>
-                    <Link href="/contact" className="hover:text-white">Chính sách bảo mật</Link>
+                    <Link href="/terms" className="hover:text-white">Điều khoản sử dụng</Link>
+                    <Link href="/privacy" className="hover:text-white">Chính sách bảo mật</Link>
                 </div>
             </div>
         </footer>

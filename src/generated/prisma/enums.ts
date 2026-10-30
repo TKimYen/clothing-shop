@@ -48,7 +48,9 @@ export const PaymentMethod = {
   COD: 'COD',
   BANK_TRANSFER: 'BANK_TRANSFER',
   VNPAY: 'VNPAY',
-  MOMO: 'MOMO'
+  MOMO: 'MOMO',
+  VISA: 'VISA',
+  MASTERCARD: 'MASTERCARD'
 } as const
 
 export type PaymentMethod = (typeof PaymentMethod)[keyof typeof PaymentMethod]

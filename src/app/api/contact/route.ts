@@ -1,7 +1,8 @@
-
+// src/app/api/contact/route.ts
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import { z } from "zod";
+import { prisma } from "@/src/lib/db";
 
 const contactSchema = z.object({
   name: z.string().trim().min(2, "Vui lòng nhập họ và tên").max(100),
@@ -42,6 +43,19 @@ export async function POST(request: Request) {
       );
     }
 
+    const { name, phone, email, topic, message } = result.data;
+
+    // === PHẦN ANH THÊM VÀO: LƯU VÀO DATABASE MỚI ===
+    try {
+      await prisma.contact.create({
+        data: { name, phone, email, topic, message },
+      });
+    } catch (dbError) {
+      console.error("Lỗi lưu database contact:", dbError);
+      // Vẫn cho code chạy tiếp xuống dưới để gửi email dù DB có lỗi
+    }
+    // ===============================================
+
     const apiKey = process.env.RESEND_API_KEY;
     const recipient = process.env.CONTACT_EMAIL;
     
@@ -59,7 +73,6 @@ export async function POST(request: Request) {
     }
 
     const resend = new Resend(apiKey);
-    const { name, phone, email, topic, message } = result.data;
 
     const htmlMessage = escapeHtml(message).replace(/\n/g, "<br />");
 

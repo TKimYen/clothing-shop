@@ -1,3 +1,4 @@
+// src/components/admin/forms/product-form.tsx
 "use client";
 
 import { ImagePlus, Loader2, Plus, Trash2, Upload } from "lucide-react";
