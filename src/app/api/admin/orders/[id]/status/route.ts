@@ -2,6 +2,7 @@ import { prisma } from "@/src/lib/db";
 import { mapOrder, orderInclude } from "@/src/lib/admin/mappers";
 import { adminHandler, badRequest, notFound, readJson } from "@/src/lib/admin/server";
 import { orderStatusInput } from "@/src/lib/admin/validators";
+import { cancelOrderAndRestock } from "@/src/lib/order-cancel";
 import { isValidStatusTransition } from "@/src/lib/utils/order";
 
 type Params = { id: string };
@@ -20,7 +21,6 @@ export const PATCH = adminHandler<Params>(async (request, { id }) => {
       select: {
         status: true,
         payment: { select: { method: true, status: true } },
-        items: { select: { variantId: true, quantity: true } },
       },
     });
     if (!current) throw notFound("Order not found");
@@ -29,6 +29,13 @@ export const PATCH = adminHandler<Params>(async (request, { id }) => {
       throw badRequest(`Cannot move an order from ${current.status} to ${status}`, {
         status: "Transition not allowed",
       });
+    }
+
+    if (status === "CANCELLED") {
+      // Same conditional UPDATE as the customer cancel, so stock is returned only once
+      const cancelled = await cancelOrderAndRestock(tx, id, [current.status]);
+      if (!cancelled) throw badRequest("Order status changed meanwhile, please reload");
+      return tx.order.findUniqueOrThrow({ where: { id }, include: orderInclude });
     }
 
     const markCodPaid =
@@ -46,15 +53,6 @@ export const PATCH = adminHandler<Params>(async (request, { id }) => {
       },
       include: orderInclude,
     });
-
-    if (status === "CANCELLED" && current.status !== "CANCELLED") {
-      for (const item of current.items) {
-        await tx.productVariant.update({
-          where: { id: item.variantId },
-          data: { stockQuantity: { increment: item.quantity } },
-        });
-      }
-    }
 
     return updatedOrder;
   });

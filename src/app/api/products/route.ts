@@ -91,6 +91,8 @@ export async function GET(request: Request) {
     const requestedLimit =
       parseNumber(searchParams.get("limit"), "limit") ?? DEFAULT_PAGE_SIZE;
     const sort = (searchParams.get("sort") ?? "newest") as SortValue;
+    // inStock=true: chỉ lấy sản phẩm còn ít nhất một biến thể có hàng
+    const inStock = searchParams.get("inStock") === "true";
 
     if (!Number.isInteger(page) || page < 1) {
       throw new Error("page must be a positive integer");
@@ -143,13 +145,14 @@ export async function GET(request: Request) {
             },
           }
         : {}),
-      ...(color
+      ...(color || inStock
         ? {
             variants: {
               some: {
-                color: {
-                  OR: [{ id: color }, { name: color }],
-                },
+                ...(color
+                  ? { color: { OR: [{ id: color }, { name: color }] } }
+                  : {}),
+                ...(inStock ? { stockQuantity: { gt: 0 } } : {}),
               },
             },
           }

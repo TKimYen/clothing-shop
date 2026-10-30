@@ -35,7 +35,7 @@ export function PaymentStatusControl({
           size="sm"
           variant={order.payment.status === "PAID" ? "primary" : "secondary"}
           loading={mutation.isPending}
-          disabled={order.payment.status === "PAID"}
+          disabled={order.payment.status === "PAID" || order.status === "CANCELLED"}
           onClick={() => mutation.mutate("PAID")}
         >
           Mark as paid
@@ -50,7 +50,7 @@ export function PaymentStatusControl({
           Mark as unpaid
         </Button>
       </div>
-      {order.payment.status === "UNPAID" && (
+      {order.payment.status === "UNPAID" && order.status !== "CANCELLED" && (
         <>
           <Label htmlFor={`transaction-${order.id}`} className="mt-3">
             Transaction ID (optional)
@@ -68,6 +68,7 @@ export function PaymentStatusControl({
         </>
       )}
       <p className="mt-1.5 text-xs text-muted">
+        {order.status === "CANCELLED" && "A cancelled order cannot be marked as paid. "}
         This updates payment only; the delivery status stays unchanged. Marking
         as unpaid clears the paid time and transaction ID.
       </p>
