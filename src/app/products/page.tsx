@@ -269,6 +269,7 @@ function ProductsPageContent() {
         sort: sortValue,
         limit: '12',
         page: String(currentPage),
+        inStock: 'true',
       });
 
       if (debouncedKeyword.trim()) params.set('search', debouncedKeyword.trim());

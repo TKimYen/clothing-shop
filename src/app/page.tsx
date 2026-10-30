@@ -108,7 +108,7 @@ export default function Home() {
     let isActive = true;
 
     async function loadFeaturedProducts() {
-      const response = await fetch("/api/products?sort=newest&limit=5", {
+      const response = await fetch("/api/products?sort=newest&limit=5&inStock=true", {
         cache: "no-store",
       });
       const result = (await response.json()) as ProductsResponse;

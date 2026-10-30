@@ -10,11 +10,14 @@ export const PATCH = adminHandler<Params>(async (request, { id }) => {
   const { status, transactionId } = await readJson(request, paymentStatusInput);
   const current = await prisma.order.findUnique({
     where: { id },
-    select: { payment: { select: { id: true, status: true } } },
+    select: { status: true, payment: { select: { id: true, status: true } } },
   });
 
   if (!current) throw notFound("Order not found");
   if (!current.payment) throw badRequest("This order has no payment record");
+  if (status === "PAID" && current.status === "CANCELLED") {
+    throw badRequest("Cannot mark a cancelled order as paid", { status: "Order is cancelled" });
+  }
   const row = await prisma.order.update({
     where: { id },
     data: {

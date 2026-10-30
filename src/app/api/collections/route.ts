@@ -17,8 +17,12 @@ export async function GET() {
         startsAt: true,
         _count: {
           select: {
+            // Chỉ đếm sản phẩm còn hàng, khớp với danh sách /products (inStock=true)
             products: {
-              where: { isActive: true },
+              where: {
+                isActive: true,
+                variants: { some: { stockQuantity: { gt: 0 } } },
+              },
             },
           },
         },

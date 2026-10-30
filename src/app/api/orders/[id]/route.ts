@@ -2,6 +2,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/src/lib/db";
+import { cancelOrderAndRestock } from "@/src/lib/order-cancel";
 
 // GET: Lấy chi tiết một đơn hàng theo ID
 export async function GET(
@@ -82,49 +83,40 @@ export async function PATCH(
     const body = await request.json();
     const { status } = body;
 
+    // Khách chỉ được hủy đơn; mọi thay đổi trạng thái khác đi qua API admin
+    if (status !== "CANCELLED") {
+      return NextResponse.json(
+        { success: false, error: { message: "Chỉ hỗ trợ hủy đơn hàng (status = CANCELLED)" } },
+        { status: 400 }
+      );
+    }
+
     const existingOrder = await prisma.order.findUnique({
       where: { id: orderId },
-      include: { items: true },
+      select: { userId: true },
     });
 
     if (!existingOrder) {
       return NextResponse.json({ success: false, error: { message: "Không tìm thấy đơn hàng" } }, { status: 404 });
     }
 
-    if (user.role === "CUSTOMER") {
-      if (existingOrder.userId !== user.id) {
-        return NextResponse.json({ success: false, error: { message: "Forbidden" } }, { status: 403 });
-      }
-      if (status === "CANCELLED" && existingOrder.status !== "PENDING") {
-        return NextResponse.json(
-          { success: false, error: { message: "Chỉ được hủy đơn hàng đang chờ xác nhận (PENDING)" } },
-          { status: 400 }
-        );
-      }
+    if (user.role === "CUSTOMER" && existingOrder.userId !== user.id) {
+      return NextResponse.json({ success: false, error: { message: "Forbidden" } }, { status: 403 });
     }
 
+    // Kiểm tra PENDING và hủy trong cùng một câu UPDATE nên hai request hủy đồng thời chỉ hoàn kho một lần
     const updatedOrder = await prisma.$transaction(async (tx) => {
-      const order = await tx.order.update({
-        where: { id: orderId },
-        data: { status: status || existingOrder.status },
-      });
-
-      // Nếu chuyển sang CANCELLED và trước đó chưa hủy -> Hoàn kho
-      if (status === "CANCELLED" && existingOrder.status !== "CANCELLED") {
-        for (const item of existingOrder.items) {
-          await tx.productVariant.update({
-            where: { id: item.variantId },
-            data: {
-              stockQuantity: {
-                increment: item.quantity,
-              },
-            },
-          });
-        }
-      }
-
-      return order;
+      const cancelled = await cancelOrderAndRestock(tx, orderId, ["PENDING"]);
+      if (!cancelled) return null;
+      return tx.order.findUnique({ where: { id: orderId } });
     });
+
+    if (!updatedOrder) {
+      return NextResponse.json(
+        { success: false, error: { message: "Chỉ được hủy đơn hàng đang chờ xác nhận (PENDING)" } },
+        { status: 400 }
+      );
+    }
 
     return NextResponse.json({ success: true, data: updatedOrder });
   } catch (error: unknown) {

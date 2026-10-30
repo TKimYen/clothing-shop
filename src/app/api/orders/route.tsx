@@ -2,6 +2,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/src/lib/db";
+import { cancelOrderAndRestock } from "@/src/lib/order-cancel";
 import { getEffectivePrice } from "@/src/lib/pricing";
 import {
   calculateCouponDiscount,
@@ -40,34 +41,23 @@ export async function GET() {
 
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-    // Kiểm tra tự động hủy đơn quá 24h chưa thanh toán
+    // Tự động hủy đơn chuyển khoản quá 24h chưa thanh toán (COD luôn UNPAID tới khi giao nên không áp dụng)
     for (let i = 0; i < orders.length; i++) {
       const order = orders[i];
       if (
         order.status === "PENDING" &&
-        order.payment?.status === "UNPAID" &&
+        order.payment?.method === "BANK_TRANSFER" &&
+        order.payment.status === "UNPAID" &&
         new Date(order.createdAt) < twentyFourHoursAgo
       ) {
-        orders[i] = await prisma.$transaction(async (tx) => {
-          const cancelledOrder = await tx.order.update({
+        const refreshed = await prisma.$transaction(async (tx) => {
+          await cancelOrderAndRestock(tx, order.id, ["PENDING"]);
+          return tx.order.findUnique({
             where: { id: order.id },
-            data: { status: "CANCELLED" },
             include: { items: true, payment: true },
           });
-
-          for (const item of cancelledOrder.items) {
-            await tx.productVariant.update({
-              where: { id: item.variantId },
-              data: {
-                stockQuantity: {
-                  increment: item.quantity,
-                },
-              },
-            });
-          }
-
-          return cancelledOrder;
         });
+        if (refreshed) orders[i] = refreshed;
       }
     }
 
@@ -190,6 +180,19 @@ export async function POST(request: Request) {
           success: false,
           error: {
             message: "Một hoặc nhiều sản phẩm đã chọn không còn trong giỏ hàng",
+          },
+        },
+        { status: 400 },
+      );
+    }
+
+    const inactiveItem = selectedItems.find((item) => !item.variant.product.isActive);
+    if (inactiveItem) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            message: `"${inactiveItem.variant.product.name}" đã ngừng bán, vui lòng bỏ khỏi giỏ hàng`,
           },
         },
         { status: 400 },
