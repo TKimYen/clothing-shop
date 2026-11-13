@@ -60,75 +60,42 @@ export async function GET(
   }
 }
 
-// PATCH: Cập nhật trạng thái đơn hàng (Hủy đơn hàng và tự động hoàn kho)
+// PATCH: Khách hủy đơn hàng của mình (LAB – điền các phần TODO)
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // 1. Xác thực: lấy người dùng đang đăng nhập từ phiên Clerk
     const { userId: clerkId } = await auth();
     if (!clerkId) {
       return NextResponse.json({ success: false, error: { message: "Unauthorized" } }, { status: 401 });
     }
-
     const user = await prisma.user.findUnique({ where: { clerkId } });
     if (!user) {
       return NextResponse.json({ success: false, error: { message: "User not found" } }, { status: 404 });
     }
-
-    // Bắt buộc phải await params trong Next.js mới
-    const resolvedParams = await params;
-    const orderId = resolvedParams.id;
-    
-    const body = await request.json();
-    const { status } = body;
-
-    // Khách chỉ được hủy đơn; mọi thay đổi trạng thái khác đi qua API admin
-    if (status !== "CANCELLED") {
-      return NextResponse.json(
-        { success: false, error: { message: "Chỉ hỗ trợ hủy đơn hàng (status = CANCELLED)" } },
-        { status: 400 }
-      );
-    }
-
-    const existingOrder = await prisma.order.findUnique({
-      where: { id: orderId },
-      select: { userId: true },
-    });
-
-    if (!existingOrder) {
-      return NextResponse.json({ success: false, error: { message: "Không tìm thấy đơn hàng" } }, { status: 404 });
-    }
-
-    if (user.role === "CUSTOMER" && existingOrder.userId !== user.id) {
-      return NextResponse.json({ success: false, error: { message: "Forbidden" } }, { status: 403 });
-    }
-
-    // Kiểm tra PENDING và hủy trong cùng một câu UPDATE nên hai request hủy đồng thời chỉ hoàn kho một lần
-    const updatedOrder = await prisma.$transaction(async (tx) => {
-      const cancelled = await cancelOrderAndRestock(tx, orderId, ["PENDING"]);
-      if (!cancelled) return null;
-      return tx.order.findUnique({ where: { id: orderId } });
-    });
-
-    if (!updatedOrder) {
-      return NextResponse.json(
-        { success: false, error: { message: "Chỉ được hủy đơn hàng đang chờ xác nhận (PENDING)" } },
-        { status: 400 }
-      );
-    }
-
-    return NextResponse.json({ success: true, data: updatedOrder });
-  } catch (error: unknown) {
-    console.error("LỖI CHI TIẾT PATCH ORDER:", error);
+ 
+    // Next.js 16: params là Promise nên phải await
+    const { id: orderId } = await params;
+    const { status } = await request.json();
+ 
+    // TODO A (Bước 6): chỉ chấp nhận status = "CANCELLED", giá trị khác trả 400
+ 
+    // TODO B (Bước 7): đơn phải tồn tại (không thì 404) và thuộc về user (không thì 403)
+ 
+    // TODO C (Bước 8): gọi cancelOrderAndRestock(tx, orderId, ["PENDING"]) trong prisma.$transaction;
+    //                  hàm trả false thì trả 400, trả true thì trả 200 kèm đơn mới
+ 
     return NextResponse.json(
-      {
-        success: false,
-        error: {
-          message: error instanceof Error ? error.message : "Lỗi hệ thống khi cập nhật đơn hàng",
-        },
-      },
-      { status: 500 },
+      { success: false, error: { message: "Chưa làm xong lab" } },
+      { status: 501 }
+    );
+  } catch (error: unknown) {
+    console.error("LỖI PATCH ORDER:", error);
+    return NextResponse.json(
+      { success: false, error: { message: error instanceof Error ? error.message : "Lỗi hệ thống" } },
+      { status: 500 }
     );
   }
 }
